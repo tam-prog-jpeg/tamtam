@@ -1,0 +1,395 @@
+/* =====================================================================
+   AUTH PAGES (LOGIN & REGISTER) — ZPPSU IPO
+   Design System: Human-Crafted Institutional SaaS Gateway
+   Governing Skill: ui-ux-kit (Anti-AI-Slop Standard)
+   ===================================================================== */
+
+body.auth-body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: var(--font-body);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 20px;
+    background-color: #F8FAFC;
+    color: var(--color-text);
+    position: relative;
+    box-sizing: border-box;
+}
+
+/* Discreet Top Utilities Bar */
+.auth-topbar {
+    width: 100%;
+    max-width: 960px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+}
+
+.auth-nav-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    padding: 6px 10px;
+    border-radius: var(--radius-sm);
+    transition: color var(--transition-fast), background-color var(--transition-fast);
+}
+.auth-nav-link:hover {
+    color: var(--color-text);
+    background-color: #E2E8F0;
+}
+
+.auth-theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--color-text-muted);
+    background: transparent;
+    border: 1px solid var(--color-border);
+    padding: 5px 10px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+.auth-theme-toggle:hover {
+    color: var(--color-text);
+    background-color: #FFFFFF;
+    border-color: #CBD5E1;
+}
+
+/* Central Authentication Container */
+.auth-container {
+    width: 100%;
+    max-width: 440px;
+    margin: 20px auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.auth-container.wide {
+    max-width: 760px;
+}
+.auth-card.wide {
+    padding: 36px 36px 28px;
+}
+
+/* Institutional Emblem & Title Header */
+.auth-header {
+    text-align: center;
+    margin-bottom: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.auth-seal {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    background: #0F172A;
+    color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 14px;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.auth-header .university-title {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    margin-bottom: 4px;
+}
+
+.auth-header h1 {
+    font-family: var(--font-heading);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--color-text);
+    margin: 0 0 6px;
+    letter-spacing: -0.02em;
+    line-height: 1.25;
+}
+
+.auth-header p {
+    font-size: 13.5px;
+    color: var(--color-text-muted);
+    margin: 0;
+    line-height: 1.45;
+}
+
+/* The Authentication Card */
+.auth-card {
+    width: 100%;
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: var(--radius-lg);
+    padding: 32px 32px 28px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 10px 25px -5px rgba(15, 23, 42, 0.05);
+    box-sizing: border-box;
+}
+
+/* Alerts */
+.auth-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+    font-size: 13px;
+    margin-bottom: 20px;
+    line-height: 1.45;
+}
+
+.auth-alert.auth-error {
+    background: #FEF2F2;
+    border: 1px solid #FCA5A5;
+    color: #B91C1C;
+}
+
+.auth-alert.auth-success {
+    background: #ECFDF5;
+    border: 1px solid #6EE7B7;
+    color: #047857;
+}
+
+.auth-alert svg,
+.auth-alert .lucide-icon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+/* Form Layout */
+.auth-form .form-group {
+    margin-bottom: 18px;
+}
+
+.auth-form label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text);
+    margin-bottom: 6px;
+}
+
+.auth-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.auth-form .form-control {
+    width: 100%;
+    height: 42px;
+    padding: 0 14px;
+    font-size: 13.5px;
+    font-family: var(--font-body);
+    border-radius: var(--radius-md);
+    border: 1px solid #CBD5E1;
+    background: #FFFFFF;
+    color: var(--color-text);
+    box-sizing: border-box;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.auth-form .form-control:focus-visible {
+    outline: none;
+    border-color: var(--color-primary-600);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+/* Password Toggle Icon */
+.auth-input-wrap .toggle-btn {
+    position: absolute;
+    right: 8px;
+    background: none;
+    border: none;
+    padding: 6px;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: color var(--transition-fast);
+}
+.auth-input-wrap .toggle-btn:hover {
+    color: var(--color-text);
+}
+.auth-input-wrap .toggle-btn svg,
+.auth-input-wrap .toggle-btn .lucide-icon {
+    width: 16px;
+    height: 16px;
+}
+
+/* Options Bar: Remember me & Help link */
+.auth-options {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 16px 0 22px;
+    font-size: 12.5px;
+}
+
+.auth-remember {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    user-select: none;
+}
+.auth-remember input[type="checkbox"] {
+    width: 15px;
+    height: 15px;
+    accent-color: var(--color-primary-600);
+    cursor: pointer;
+    margin: 0;
+}
+
+.auth-link {
+    color: var(--color-primary-600);
+    text-decoration: none;
+    font-weight: 500;
+}
+.auth-link:hover {
+    text-decoration: underline;
+}
+
+/* Primary Button */
+.auth-submit-btn {
+    width: 100%;
+    height: 42px;
+    font-size: 14px;
+    font-weight: 600;
+    justify-content: center;
+}
+
+/* Card Bottom Link */
+.auth-card-footer {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid #F1F5F9;
+    text-align: center;
+    font-size: 13px;
+    color: var(--color-text-muted);
+}
+.auth-card-footer a {
+    color: var(--color-primary-600);
+    font-weight: 600;
+    text-decoration: none;
+}
+.auth-card-footer a:hover {
+    text-decoration: underline;
+}
+
+/* Role Scope Pill Note */
+.auth-constituents-note {
+    margin-top: 18px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--color-text-subtle);
+    line-height: 1.5;
+    max-width: 400px;
+}
+
+/* Official Government & University Legal Footer */
+.auth-footer {
+    width: 100%;
+    max-width: 960px;
+    text-align: center;
+    padding: 16px 0 8px;
+    font-size: 11.5px;
+    color: var(--color-text-subtle);
+    line-height: 1.6;
+    border-top: 1px solid #E2E8F0;
+    margin-top: 20px;
+}
+.auth-footer a {
+    color: var(--color-text-muted);
+    text-decoration: none;
+}
+.auth-footer a:hover {
+    text-decoration: underline;
+    color: var(--color-text);
+}
+
+/* =====================================================================
+   DARK MODE ADAPTATION ([data-theme="dark"])
+   Derived tokens, no inverted colors, high contrast
+   ===================================================================== */
+[data-theme="dark"] body.auth-body {
+    background-color: #0B0F19;
+    color: #F8FAFC;
+}
+
+[data-theme="dark"] .auth-card {
+    background: #111827;
+    border-color: #1F2937;
+    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .auth-nav-link:hover {
+    background-color: #1F2937;
+    color: #FFFFFF;
+}
+
+[data-theme="dark"] .auth-theme-toggle {
+    border-color: #374151;
+    color: #9CA3AF;
+}
+[data-theme="dark"] .auth-theme-toggle:hover {
+    background-color: #1F2937;
+    border-color: #4B5563;
+    color: #FFFFFF;
+}
+
+[data-theme="dark"] .auth-form .form-control {
+    background: #0F172A;
+    border-color: #374151;
+    color: #F8FAFC;
+}
+[data-theme="dark"] .auth-form .form-control:focus-visible {
+    border-color: #3B82F6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+[data-theme="dark"] .auth-card-footer {
+    border-color: #1F2937;
+}
+
+[data-theme="dark"] .auth-footer {
+    border-color: #1F2937;
+}
+
+/* Responsive adjustment for small phones */
+@media (max-width: 480px) {
+    body.auth-body {
+        padding: 16px 14px;
+    }
+    .auth-card {
+        padding: 24px 20px;
+        border-radius: var(--radius-md);
+    }
+    .auth-header h1 {
+        font-size: 20px;
+    }
+}

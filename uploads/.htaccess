@@ -1,0 +1,22 @@
+# =====================================================================
+# Security hardening for the uploads/ folder
+# =====================================================================
+# Uploaded files are served directly (their random filenames make them
+# hard to guess), but this folder should NEVER be allowed to execute
+# scripts, even if someone managed to upload a disguised file, and it
+# should never expose a browsable file listing.
+
+# Block execution of any script-like file type inside uploads/
+<FilesMatch "\.(php|phtml|php3|php4|php5|php7|pl|py|cgi|asp|aspx|sh|exe)$">
+    Require all denied
+</FilesMatch>
+
+# Disable directory browsing (no listing of files if someone visits
+# the folder URL directly without a filename)
+Options -Indexes
+
+# Prevent the browser from guessing/executing a file as something
+# other than what it actually is (e.g. treating a .jpg as HTML/JS)
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+</IfModule>
