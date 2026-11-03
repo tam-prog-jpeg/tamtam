@@ -315,14 +315,14 @@ require_once __DIR__ . '/../includes/header.php';
 </div>
 
 <!-- 4. Advanced Filter Bar Card -->
-<div class="card" style="margin-bottom:20px;">
-    <div class="card-body" style="padding:16px;">
-        <form method="GET" style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr auto;gap:12px;align-items:end;">
+<div class="card" style="margin-bottom:20px;border-radius:var(--radius-lg);">
+    <div class="card-body" style="padding:16px 20px;">
+        <form method="GET" style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1.2fr auto;gap:12px;align-items:end;">
             <div class="form-group" style="margin-bottom:0;">
-                <label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--color-text-muted);letter-spacing:0.04em;">Search Query</label>
-                <div style="position:relative;">
-                    <svg class="lucide-icon" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--color-text-subtle);pointer-events:none;width:15px;height:15px;" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    <input type="text" name="q" class="form-control" style="padding-left:32px;" placeholder="Tracking code, title, applicant…" value="<?= clean($search) ?>">
+                <label class="form-label-eyebrow">Search Portfolio</label>
+                <div class="input-icon-wrap has-left-icon">
+                    <i data-lucide="search" class="input-icon-left"></i>
+                    <input type="text" name="q" class="form-control" placeholder="Tracking code, title, applicant…" value="<?= clean($search) ?>">
                 </div>
             </div>
 
@@ -332,8 +332,8 @@ require_once __DIR__ . '/../includes/header.php';
             <?php endif; ?>
 
             <div class="form-group" style="margin-bottom:0;">
-                <label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--color-text-muted);letter-spacing:0.04em;">IP Type</label>
-                <select name="type_id" class="form-control">
+                <label class="form-label-eyebrow">IP Type</label>
+                <select name="type_id" class="form-control form-select">
                     <option value="0">All IP Types</option>
                     <?php mysqli_data_seek($types_lookup, 0); while ($t = mysqli_fetch_assoc($types_lookup)): ?>
                         <option value="<?= $t['type_id'] ?>" <?= $typeId === (int)$t['type_id'] ? 'selected' : '' ?>><?= clean($t['type_name']) ?></option>
@@ -342,8 +342,8 @@ require_once __DIR__ . '/../includes/header.php';
             </div>
 
             <div class="form-group" style="margin-bottom:0;">
-                <label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--color-text-muted);letter-spacing:0.04em;">College</label>
-                <select name="college_id" id="filterCollege" class="form-control">
+                <label class="form-label-eyebrow">College</label>
+                <select name="college_id" id="filterCollege" class="form-control form-select">
                     <option value="0">All Colleges</option>
                     <?php mysqli_data_seek($colleges_lookup, 0); while ($c = mysqli_fetch_assoc($colleges_lookup)): ?>
                         <option value="<?= $c['college_id'] ?>" <?= $collegeId === (int)$c['college_id'] ? 'selected' : '' ?>><?= clean($c['college_name']) ?></option>
@@ -352,8 +352,8 @@ require_once __DIR__ . '/../includes/header.php';
             </div>
 
             <div class="form-group" style="margin-bottom:0;">
-                <label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--color-text-muted);letter-spacing:0.04em;">Department</label>
-                <select name="department_id" id="filterDept" class="form-control">
+                <label class="form-label-eyebrow">Department</label>
+                <select name="department_id" id="filterDept" class="form-control form-select">
                     <option value="0">All Departments</option>
                     <?php foreach ($deptList as $d): ?>
                         <option value="<?= $d['department_id'] ?>" data-college="<?= $d['college_id'] ?>" <?= $deptId === (int)$d['department_id'] ? 'selected' : '' ?>><?= clean($d['department_name']) ?></option>
@@ -362,22 +362,26 @@ require_once __DIR__ . '/../includes/header.php';
             </div>
 
             <div class="form-group" style="margin-bottom:0;">
-                <label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--color-text-muted);letter-spacing:0.04em;">Date Range</label>
-                <div style="display:flex;gap:4px;align-items:center;">
-                    <input type="date" name="date_from" class="form-control" style="font-size:12px;padding:6px 8px;" value="<?= clean($dateFrom) ?>" title="From">
-                    <span style="color:var(--color-text-subtle);">-</span>
-                    <input type="date" name="date_to" class="form-control" style="font-size:12px;padding:6px 8px;" value="<?= clean($dateTo) ?>" title="To">
+                <label class="form-label-eyebrow">Filing Date Range</label>
+                <div style="display:flex;gap:6px;align-items:center;">
+                    <input type="date" name="date_from" class="form-control" style="font-size:12px;padding:6px 8px;height:42px;" value="<?= clean($dateFrom) ?>" title="From">
+                    <span style="color:var(--color-text-subtle);">&ndash;</span>
+                    <input type="date" name="date_to" class="form-control" style="font-size:12px;padding:6px 8px;height:42px;" value="<?= clean($dateTo) ?>" title="To">
                 </div>
             </div>
 
             <div style="display:flex;gap:6px;">
-                <button type="submit" class="btn btn-primary btn-sm" style="height:38px;">
-                    <svg class="lucide-icon" viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                <button type="submit" class="btn btn-primary btn-sm" style="height:42px;padding:0 16px;">
+                    <i data-lucide="filter" style="width:14px;height:14px;"></i>
                     Filter
                 </button>
-                <a href="<?= BASE_URL ?>admin/applications.php" class="btn btn-outline btn-sm" style="height:38px;padding:0 12px;" title="Reset filters">
+                <a href="<?= BASE_URL ?>admin/applications.php" class="btn btn-outline btn-sm" style="height:42px;display:inline-flex;align-items:center;padding:0 14px;" title="Reset filters">
                     Reset
                 </a>
+            </div>
+        </form>
+    </div>
+</div>
             </div>
         </form>
     </div>

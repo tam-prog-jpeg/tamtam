@@ -117,70 +117,184 @@ require_once __DIR__ . '/../includes/header.php';
 <?php endif; ?>
 
 <div class="grid-2">
+    <!-- 1. Profile Information Card -->
     <div class="card" style="box-shadow:var(--shadow-sm);border:1px solid var(--color-border);border-radius:var(--radius-lg);">
-        <div class="card-header" style="padding:14px 20px;border-bottom:1px solid var(--color-border);background:var(--color-surface);display:flex;align-items:center;gap:8px;">
-            <i data-lucide="user" style="width:16px;height:16px;color:var(--color-primary);"></i>
-            <h3 style="font-size:15px;margin:0;font-weight:600;">Profile Information</h3>
+        <div class="card-header" style="padding:16px 20px;border-bottom:1px solid var(--color-border);background:var(--color-surface);display:flex;align-items:center;gap:10px;">
+            <div style="width:34px;height:34px;border-radius:10px;background:var(--color-primary-50);color:var(--color-primary-600);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <i data-lucide="user" style="width:18px;height:18px;"></i>
+            </div>
+            <div>
+                <h3 style="font-size:15px;margin:0;font-weight:700;">Administrator Profile</h3>
+                <div style="font-size:12px;color:var(--color-text-muted);">Manage your name, primary contact, and recovery mailbox.</div>
+            </div>
         </div>
-        <div class="card-body">
+        <div class="card-body" style="padding:22px;">
             <form method="POST">
                 <?php csrf_field(); ?>
                 <input type="hidden" name="form" value="profile">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>First Name</label>
-                        <input type="text" name="first_name" class="form-control" value="<?= clean($me['first_name']) ?>" required>
+                
+                <div class="form-row" style="margin-bottom:16px;">
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label class="form-label">
+                            First Name
+                            <span class="required-mark" aria-hidden="true">*</span>
+                        </label>
+                        <div class="input-icon-wrap has-left-icon">
+                            <i data-lucide="user" class="input-icon-left"></i>
+                            <input type="text" name="first_name" class="form-control" value="<?= clean($me['first_name']) ?>" required>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label>Last Name</label>
-                        <input type="text" name="last_name" class="form-control" value="<?= clean($me['last_name']) ?>" required>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label class="form-label">
+                            Last Name
+                            <span class="required-mark" aria-hidden="true">*</span>
+                        </label>
+                        <div class="input-icon-wrap has-left-icon">
+                            <i data-lucide="user" class="input-icon-left"></i>
+                            <input type="text" name="last_name" class="form-control" value="<?= clean($me['last_name']) ?>" required>
+                        </div>
                     </div>
                 </div>
+
                 <div class="form-group">
-                    <label>Login Email (not editable)</label>
-                    <input type="email" class="form-control" value="<?= clean($me['email']) ?>" disabled>
+                    <div class="form-label-row">
+                        <label class="form-label">Login Identifier / Email</label>
+                        <span class="optional-badge">System Key</span>
+                    </div>
+                    <div class="input-icon-wrap has-left-icon">
+                        <i data-lucide="lock" class="input-icon-left"></i>
+                        <input type="email" class="form-control" value="<?= clean($me['email']) ?>" disabled>
+                    </div>
+                    <div class="form-hint">
+                        <i data-lucide="info"></i>
+                        <span>Primary authentication handle. Cannot be altered from this panel for security auditing.</span>
+                    </div>
                 </div>
+
                 <div class="form-group">
-                    <label>Recovery Email</label>
-                    <input type="email" name="recovery_email" class="form-control" value="<?= clean($me['recovery_email'] ?? '') ?>" placeholder="An alternate email for account recovery">
-                    <div class="form-hint">Used only if you lose access to your login email. Must be different from it.</div>
+                    <div class="form-label-row">
+                        <label class="form-label">Account Recovery Email</label>
+                        <span class="optional-badge">Optional</span>
+                    </div>
+                    <div class="input-icon-wrap has-left-icon">
+                        <i data-lucide="mail" class="input-icon-left"></i>
+                        <input type="email" name="recovery_email" class="form-control" value="<?= clean($me['recovery_email'] ?? '') ?>" placeholder="recovery.admin@zppsu.edu.ph">
+                    </div>
+                    <div class="form-hint">
+                        <i data-lucide="info"></i>
+                        <span>Secondary address for emergency password reset notifications.</span>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>Contact Number</label>
-                    <input type="text" name="contact_number" class="form-control" value="<?= clean($me['contact_number']) ?>">
+
+                <div class="form-group" style="margin-bottom:20px;">
+                    <div class="form-label-row">
+                        <label class="form-label">Contact Hotline / Mobile</label>
+                        <span class="optional-badge">Optional</span>
+                    </div>
+                    <div class="input-icon-wrap has-left-icon">
+                        <i data-lucide="phone" class="input-icon-left"></i>
+                        <input type="text" name="contact_number" class="form-control" value="<?= clean($me['contact_number']) ?>" placeholder="+63 9...">
+                    </div>
                 </div>
-                <button type="submit" class="btn btn-primary btn-sm">
+
+                <button type="submit" class="btn btn-primary" style="padding:9px 20px;">
                     <i data-lucide="check" style="width:14px;height:14px;"></i>
-                    Save Changes
+                    Save Profile Changes
                 </button>
             </form>
         </div>
     </div>
 
+    <!-- 2. Security & Password Update Card -->
     <div class="card" id="password" style="box-shadow:var(--shadow-sm);border:1px solid var(--color-border);border-radius:var(--radius-lg);">
-        <div class="card-header" style="padding:14px 20px;border-bottom:1px solid var(--color-border);background:var(--color-surface);display:flex;align-items:center;gap:8px;">
-            <i data-lucide="lock" style="width:16px;height:16px;color:var(--color-warning);"></i>
-            <h3 style="font-size:15px;margin:0;font-weight:600;">Change Password</h3>
+        <div class="card-header" style="padding:16px 20px;border-bottom:1px solid var(--color-border);background:var(--color-surface);display:flex;align-items:center;gap:10px;">
+            <div style="width:34px;height:34px;border-radius:10px;background:var(--color-warning-bg);color:var(--color-warning);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <i data-lucide="key-round" style="width:18px;height:18px;"></i>
+            </div>
+            <div>
+                <h3 style="font-size:15px;margin:0;font-weight:700;">Authentication &amp; Password</h3>
+                <div style="font-size:12px;color:var(--color-text-muted);">Change your administrator master password securely.</div>
+            </div>
         </div>
-        <div class="card-body">
+        <div class="card-body" style="padding:22px;">
             <form method="POST">
                 <?php csrf_field(); ?>
                 <input type="hidden" name="form" value="password">
+
+                <!-- Current Password -->
                 <div class="form-group">
-                    <label>Current Password</label>
-                    <input type="password" name="current_password" class="form-control" required>
+                    <label class="form-label" for="currentPass">
+                        Current Password
+                        <span class="required-mark" aria-hidden="true">*</span>
+                    </label>
+                    <div class="input-icon-wrap has-left-icon has-right-icon">
+                        <i data-lucide="key" class="input-icon-left"></i>
+                        <input type="password" id="currentPass" name="current_password" class="form-control" required placeholder="Enter current master password">
+                        <button type="button" class="password-toggle-btn" data-password-target="#currentPass" aria-label="Toggle password visibility">
+                            <i data-lucide="eye"></i>
+                        </button>
+                    </div>
                 </div>
+
+                <!-- New Password with live strength meter -->
                 <div class="form-group">
-                    <label>New Password</label>
-                    <input type="password" name="new_password" class="form-control" minlength="8" required>
+                    <label class="form-label" for="profileNewPass">
+                        New Password (minimum 8 characters)
+                        <span class="required-mark" aria-hidden="true">*</span>
+                    </label>
+                    <div class="input-icon-wrap has-left-icon has-right-icon">
+                        <i data-lucide="lock" class="input-icon-left"></i>
+                        <input type="password" id="profileNewPass" name="new_password" class="form-control" 
+                               minlength="8" required placeholder="Enter new strong password"
+                               data-strength-meter="#profileStrengthWrap">
+                        <button type="button" class="password-toggle-btn" data-password-target="#profileNewPass" aria-label="Toggle password visibility">
+                            <i data-lucide="eye"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- Live Strength Meter -->
+                    <div class="password-strength-wrap" id="profileStrengthWrap">
+                        <div class="password-strength-track">
+                            <span class="password-strength-segment"></span>
+                            <span class="password-strength-segment"></span>
+                            <span class="password-strength-segment"></span>
+                            <span class="password-strength-segment"></span>
+                        </div>
+                        <div class="password-strength-status">
+                            <span>Strength: <strong class="strength-text">Enter password</strong></span>
+                            <span>Min. 8 characters</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>Confirm New Password</label>
-                    <input type="password" name="confirm_password" class="form-control" minlength="8" required>
+
+                <!-- Confirm Password with live match validator -->
+                <div class="form-group" style="margin-bottom:20px;">
+                    <label class="form-label" for="profileConfirmPass">
+                        Confirm New Password
+                        <span class="required-mark" aria-hidden="true">*</span>
+                    </label>
+                    <div class="input-icon-wrap has-left-icon has-right-icon">
+                        <i data-lucide="lock" class="input-icon-left"></i>
+                        <input type="password" id="profileConfirmPass" name="confirm_password" class="form-control" 
+                               minlength="8" required placeholder="Re-enter new password"
+                               data-match-target="#profileNewPass">
+                        <button type="button" class="password-toggle-btn" data-password-target="#profileConfirmPass" aria-label="Toggle password visibility">
+                            <i data-lucide="eye"></i>
+                        </button>
+                    </div>
+                    <div class="invalid-feedback">
+                        <i data-lucide="alert-circle"></i>
+                        <span>Passwords do not match.</span>
+                    </div>
+                    <div class="valid-feedback">
+                        <i data-lucide="check-circle-2"></i>
+                        <span>Passwords match!</span>
+                    </div>
                 </div>
-                <button type="submit" class="btn btn-warning btn-sm">
-                    <i data-lucide="key" style="width:14px;height:14px;"></i>
-                    Change Password
+
+                <button type="submit" class="btn btn-warning" style="padding:9px 20px;">
+                    <i data-lucide="shield-check" style="width:14px;height:14px;"></i>
+                    Update Master Password
                 </button>
             </form>
         </div>

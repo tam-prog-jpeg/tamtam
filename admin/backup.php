@@ -174,6 +174,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         unlink($tmp);
         exit;
     }
+
+    if ($action === 'restore_database') {
+        if (!isset($_FILES['backup_file']) || $_FILES['backup_file']['error'] !== UPLOAD_ERR_OK) {
+            set_flash('error', 'Please select a valid .sql backup file to restore.');
+            redirect('admin/backup.php');
+        }
+        $confirmWord = trim($_POST['confirm_word'] ?? '');
+        if ($confirmWord !== 'RESTORE') {
+            set_flash('error', 'Restoration cancelled: You must type "RESTORE" to confirm.');
+            redirect('admin/backup.php');
+        }
+        $fileTmp = $_FILES['backup_file']['tmp_name'];
+        $fileExt = strtolower(pathinfo($_FILES['backup_file']['name'], PATHINFO_EXTENSION));
+        if ($fileExt !== 'sql') {
+            set_flash('error', 'Invalid file type. Only .sql backup dumps can be restored.');
+            redirect('admin/backup.php');
+        }
+        $sqlContent = file_get_contents($fileTmp);
+        if (empty($sqlContent)) {
+            set_flash('error', 'The uploaded SQL file is empty.');
+            redirect('admin/backup.php');
+        }
+        if (mysqli_multi_query($conn, $sqlContent)) {
+            do {
+                if ($result = mysqli_store_result($conn)) {
+                    mysqli_free_result($result);
+                }
+            } while (mysqli_more_results($conn) && mysqli_next_result($conn));
+            log_audit($conn, $_SESSION['user_id'], 'restore_database', 'Restored database from SQL backup file: ' . $_FILES['backup_file']['name']);
+            set_flash('success', 'Database restored successfully from backup.');
+        } else {
+            set_flash('error', 'Database restore encountered an error: ' . mysqli_error($conn));
+        }
+        redirect('admin/backup.php');
+    }
     redirect('admin/backup.php');
 }
 
@@ -379,6 +414,89 @@ require_once __DIR__ . '/../includes/header.php';
                 </button>
             </form>
         </div>
+    </div>
+</div>
+
+<!-- =====================================================================
+     DATABASE RESTORATION CONSOLE
+     ===================================================================== -->
+<div class="card" style="border-radius:var(--radius-lg);margin-bottom:24px;">
+    <div class="card-header" style="padding:16px 20px;border-bottom:1px solid var(--color-border);display:flex;align-items:center;justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:34px;height:34px;border-radius:10px;background:var(--color-danger-bg);color:var(--color-danger);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <i data-lucide="rotate-ccw" style="width:18px;height:18px;"></i>
+            </div>
+            <div>
+                <h3 style="margin:0;font-size:15px;font-weight:700;">Database Restoration Console</h3>
+                <div style="font-size:12px;color:var(--color-text-muted);">Restore system records from an existing .SQL database backup dump.</div>
+            </div>
+        </div>
+        <span class="badge badge-warning" style="font-size:11px;">Restoration Action</span>
+    </div>
+    <div class="card-body" style="padding:22px;">
+        <form method="POST" enctype="multipart/form-data" id="restoreDbForm">
+            <?php csrf_field(); ?>
+            <input type="hidden" name="action" value="restore_database">
+
+            <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:20px;align-items:start;">
+                <!-- Drag and Drop File Dropzone -->
+                <div class="form-group" style="margin-bottom:0;">
+                    <label class="form-label">
+                        Select or Drop SQL Backup File
+                        <span class="required-mark" aria-hidden="true">*</span>
+                    </label>
+                    <div class="file-dropzone" id="sqlDropzone">
+                        <input type="file" name="backup_file" id="backup_file" accept=".sql" required>
+                        <div class="file-dropzone-default">
+                            <div class="file-dropzone-icon">
+                                <i data-lucide="database" style="width:20px;height:20px;"></i>
+                            </div>
+                            <div class="file-dropzone-title">Drag &amp; drop <span>.SQL backup file</span> here</div>
+                            <div class="file-dropzone-desc">or click anywhere in this zone to browse your computer</div>
+                        </div>
+                        <div class="file-dropzone-preview" style="display:none;">
+                            <div class="file-preview-info">
+                                <div class="file-preview-icon">
+                                    <i data-lucide="database" style="width:18px;height:18px;"></i>
+                                </div>
+                                <div>
+                                    <div class="file-preview-name">backup.sql</div>
+                                    <div class="file-preview-size">0 KB</div>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-outline-danger btn-xs file-remove-btn" title="Remove file">
+                                <i data-lucide="x" style="width:13px;height:13px;"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Confirmation and Safety Checks -->
+                <div style="display:flex;flex-direction:column;gap:14px;">
+                    <div style="background:var(--color-danger-bg);border:1px solid rgba(239,68,68,0.25);border-radius:var(--radius-md);padding:14px;color:var(--color-danger-text);font-size:12.5px;line-height:1.5;">
+                        <div style="font-weight:700;display:flex;align-items:center;gap:6px;margin-bottom:4px;color:var(--color-danger);">
+                            <i data-lucide="alert-triangle" style="width:16px;height:16px;"></i>
+                            Destructive Action Warning
+                        </div>
+                        Restoring a database will overwrite existing tables and records with the state captured in the backup file. Proceed only if intended.
+                    </div>
+
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label class="form-label" for="confirm_word">Type "RESTORE" to Confirm</label>
+                        <div class="input-icon-wrap has-left-icon">
+                            <i data-lucide="shield-alert" class="input-icon-left"></i>
+                            <input type="text" id="confirm_word" name="confirm_word" class="form-control" 
+                                   placeholder="Type RESTORE in uppercase" required autocomplete="off" style="font-family:var(--font-mono);font-weight:700;">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-danger" style="padding:10px 20px;display:flex;align-items:center;justify-content:center;gap:8px;" data-confirm="Are you absolutely sure you want to execute this database restoration? All data changes since this backup will be replaced.">
+                        <i data-lucide="rotate-ccw" style="width:15px;height:15px;"></i>
+                        Execute Database Restore
+                    </button>
+                </div>
+            </div>
+        </form>
     </div>
 </div>
 

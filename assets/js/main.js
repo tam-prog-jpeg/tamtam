@@ -136,6 +136,246 @@ document.addEventListener('DOMContentLoaded', function () {
     if (window.FLASH && window.FLASH.message) {
         showToast(window.FLASH.type || 'info', window.FLASH.message);
     }
+
+    // ---- 9. Password Visibility Toggle ---------------------------
+    document.querySelectorAll('.password-toggle-btn, [data-password-toggle]').forEach((btn) => {
+        btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            const targetId = this.dataset.passwordTarget;
+            const input = targetId ? document.querySelector(targetId) : this.closest('.input-icon-wrap')?.querySelector('input');
+            if (!input) return;
+
+            const isPassword = input.type === 'password';
+            input.type = isPassword ? 'text' : 'password';
+            this.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+            this.title = isPassword ? 'Hide password' : 'Show password';
+            
+            // Swap Lucide icon or fallback SVG
+            const icon = this.querySelector('i, svg');
+            if (icon) {
+                if (icon.hasAttribute('data-lucide')) {
+                    icon.setAttribute('data-lucide', isPassword ? 'eye-off' : 'eye');
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
+                } else {
+                    icon.outerHTML = isPassword 
+                        ? '<svg class="lucide-icon" viewBox="0 0 24 24"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/></svg>'
+                        : '<svg class="lucide-icon" viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>';
+                }
+            }
+        });
+    });
+
+    // ---- 10. Live Password Strength Meter -------------------------
+    document.querySelectorAll('[data-strength-meter]').forEach((input) => {
+        const targetSelector = input.dataset.strengthMeter;
+        const targetWrap = document.querySelector(targetSelector);
+        if (!targetWrap) return;
+
+        const segments = targetWrap.querySelectorAll('.password-strength-segment');
+        const statusText = targetWrap.querySelector('.strength-text');
+
+        input.addEventListener('input', function () {
+            const val = this.value;
+            let score = 0;
+            if (val.length >= 8) score++;
+            if (/[A-Z]/.test(val) && /[a-z]/.test(val)) score++;
+            if (/\d/.test(val)) score++;
+            if (/[^A-Za-z0-9]/.test(val)) score++;
+
+            const colors = ['#EF4444', '#F59E0B', '#3B82F6', '#10B981'];
+            const labels = ['Too Weak', 'Fair', 'Good', 'Strong'];
+
+            segments.forEach((seg, idx) => {
+                if (val.length === 0) {
+                    seg.style.backgroundColor = 'var(--color-border)';
+                } else if (idx < score) {
+                    seg.style.backgroundColor = colors[score - 1];
+                } else {
+                    seg.style.backgroundColor = 'var(--color-border)';
+                }
+            });
+
+            if (statusText) {
+                statusText.textContent = val.length === 0 ? 'Enter password' : labels[score - 1] || 'Too Weak';
+                statusText.style.color = val.length === 0 ? 'var(--color-text-muted)' : (colors[score - 1] || colors[0]);
+            }
+        });
+    });
+
+    // ---- 11. Live Password Match Validator -----------------------
+    document.querySelectorAll('[data-match-target]').forEach((confirmInput) => {
+        const targetSelector = confirmInput.dataset.matchTarget;
+        const mainInput = document.querySelector(targetSelector);
+        if (!mainInput) return;
+
+        function checkMatch() {
+            if (!confirmInput.value) {
+                confirmInput.classList.remove('is-valid', 'is-invalid');
+                return;
+            }
+            if (confirmInput.value === mainInput.value) {
+                confirmInput.classList.remove('is-invalid');
+                confirmInput.classList.add('is-valid');
+            } else {
+                confirmInput.classList.remove('is-valid');
+                confirmInput.classList.add('is-invalid');
+            }
+        }
+
+        confirmInput.addEventListener('input', checkMatch);
+        mainInput.addEventListener('input', () => {
+            if (confirmInput.value) checkMatch();
+        });
+    });
+
+    // ---- 12. Live Character & Word Counters -----------------------
+    document.querySelectorAll('[data-char-counter]').forEach((field) => {
+        const targetSelector = field.dataset.charCounter;
+        const counterEl = document.querySelector(targetSelector);
+        const max = parseInt(field.getAttribute('maxlength') || field.dataset.maxChars || 0, 10);
+        if (!counterEl || !max) return;
+
+        function updateCounter() {
+            const current = field.value.length;
+            counterEl.textContent = `${current} / ${max}`;
+            counterEl.classList.remove('warning', 'danger');
+            if (current >= max) {
+                counterEl.classList.add('danger');
+            } else if (current >= max * 0.85) {
+                counterEl.classList.add('warning');
+            }
+        }
+        field.addEventListener('input', updateCounter);
+        updateCounter();
+    });
+
+    // ---- 13. Interactive File Dropzone ----------------------------
+    document.querySelectorAll('.file-dropzone').forEach((zone) => {
+        const input = zone.querySelector('input[type="file"]');
+        const previewWrap = zone.querySelector('.file-dropzone-preview');
+        const defaultContent = zone.querySelector('.file-dropzone-default');
+        if (!input) return;
+
+        ['dragenter', 'dragover'].forEach(event => {
+            zone.addEventListener(event, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                zone.classList.add('dragover');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(event => {
+            zone.addEventListener(event, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                zone.classList.remove('dragover');
+            });
+        });
+
+        zone.addEventListener('drop', (e) => {
+            if (e.dataTransfer && e.dataTransfer.files.length) {
+                input.files = e.dataTransfer.files;
+                handleFileSelect(input.files[0]);
+            }
+        });
+
+        input.addEventListener('change', () => {
+            if (input.files.length) {
+                handleFileSelect(input.files[0]);
+            }
+        });
+
+        function handleFileSelect(file) {
+            if (!file) return;
+            const sizeStr = file.size > 1048576 
+                ? (file.size / 1048576).toFixed(2) + ' MB'
+                : (file.size / 1024).toFixed(1) + ' KB';
+
+            if (previewWrap) {
+                const nameEl = previewWrap.querySelector('.file-preview-name');
+                const sizeEl = previewWrap.querySelector('.file-preview-size');
+                if (nameEl) nameEl.textContent = file.name;
+                if (sizeEl) sizeEl.textContent = sizeStr;
+                previewWrap.style.display = 'flex';
+                if (defaultContent) defaultContent.style.display = 'none';
+            }
+        }
+
+        const removeBtn = zone.querySelector('.file-remove-btn');
+        if (removeBtn) {
+            removeBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                input.value = '';
+                if (previewWrap) previewWrap.style.display = 'none';
+                if (defaultContent) defaultContent.style.display = 'block';
+            });
+        }
+    });
+
+    // ---- 14. Interactive Selection Chips / Tags -------------------
+    document.querySelectorAll('.form-chip').forEach((chip) => {
+        const checkbox = chip.querySelector('input[type="checkbox"]');
+        chip.addEventListener('click', (e) => {
+            if (e.target !== checkbox) {
+                if (checkbox) {
+                    checkbox.checked = !checkbox.checked;
+                    chip.classList.toggle('active', checkbox.checked);
+                    checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+                } else {
+                    chip.classList.toggle('active');
+                }
+            } else {
+                chip.classList.toggle('active', checkbox.checked);
+            }
+        });
+    });
+
+    // ---- 15. Form Submit Button Loading State ---------------------
+    document.querySelectorAll('form').forEach((form) => {
+        form.addEventListener('submit', function (e) {
+            if (form.hasAttribute('data-no-loading')) return;
+            // Check form validity if HTML5 validation is enabled
+            if (form.checkValidity && !form.checkValidity()) {
+                return; // Let native or custom validation trigger
+            }
+            const submitBtn = form.querySelector('button[type="submit"]:not([data-no-loading])');
+            if (submitBtn && !submitBtn.disabled) {
+                // Set explicit dimensions before making text transparent to avoid layout shift
+                const btnWidth = submitBtn.offsetWidth;
+                submitBtn.style.minWidth = btnWidth + 'px';
+                submitBtn.classList.add('btn-loading');
+                // Auto-timeout failsafe
+                setTimeout(() => {
+                    submitBtn.classList.remove('btn-loading');
+                }, 8000);
+            }
+        });
+    });
+
+    // ---- 16. Copy to Clipboard Utility ----------------------------
+    document.querySelectorAll('[data-copy]').forEach((btn) => {
+        btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            const textToCopy = this.dataset.copy || (this.dataset.copyTarget ? document.querySelector(this.dataset.copyTarget)?.value : '');
+            if (!textToCopy) return;
+
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                const originalHtml = this.innerHTML;
+                this.classList.add('btn-success');
+                this.innerHTML = '<i data-lucide="check" style="width:14px;height:14px;"></i> Copied!';
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+                showToast('success', 'Copied to clipboard');
+                setTimeout(() => {
+                    this.classList.remove('btn-success');
+                    this.innerHTML = originalHtml;
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
+                }, 2000);
+            }).catch(() => {
+                showToast('error', 'Unable to copy to clipboard');
+            });
+        });
+    });
 });
 
 /** Show a floating toast notification. type: success|error|warning|info */

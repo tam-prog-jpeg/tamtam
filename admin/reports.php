@@ -218,8 +218,8 @@ require_once __DIR__ . '/../includes/report_period_picker.php';
             <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(170px, 1fr));gap:12px;align-items:end;">
                 <!-- Status Filter -->
                 <div class="form-group" style="margin-bottom:0;">
-                    <label style="font-size:12px;font-weight:600;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.04em;">Status</label>
-                    <select name="status" class="form-control" style="font-size:13px;height:38px;border-radius:var(--radius-md);">
+                    <label class="form-label-eyebrow">Status</label>
+                    <select name="status" class="form-control form-select">
                         <option value="">All Statuses</option>
                         <?php foreach (['pending','under_review','evaluated','returned','approved','rejected'] as $s): ?>
                             <option value="<?= $s ?>" <?= $status === $s ? 'selected' : '' ?>><?= status_label($s) ?></option>
@@ -229,8 +229,8 @@ require_once __DIR__ . '/../includes/report_period_picker.php';
 
                 <!-- Type Filter -->
                 <div class="form-group" style="margin-bottom:0;">
-                    <label style="font-size:12px;font-weight:600;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.04em;">IP Type</label>
-                    <select name="type_id" class="form-control" style="font-size:13px;height:38px;border-radius:var(--radius-md);">
+                    <label class="form-label-eyebrow">IP Type</label>
+                    <select name="type_id" class="form-control form-select">
                         <option value="0">All Types</option>
                         <?php while ($t = mysqli_fetch_assoc($types_lookup)): ?>
                             <option value="<?= $t['type_id'] ?>" <?= $typeId === (int)$t['type_id'] ? 'selected' : '' ?>><?= clean($t['type_name']) ?></option>
@@ -240,8 +240,8 @@ require_once __DIR__ . '/../includes/report_period_picker.php';
 
                 <!-- College Filter -->
                 <div class="form-group" style="margin-bottom:0;">
-                    <label style="font-size:12px;font-weight:600;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.04em;">College</label>
-                    <select name="college_id" class="form-control" style="font-size:13px;height:38px;border-radius:var(--radius-md);">
+                    <label class="form-label-eyebrow">College</label>
+                    <select name="college_id" class="form-control form-select">
                         <option value="0">All Colleges</option>
                         <?php while ($c = mysqli_fetch_assoc($colleges_lookup)): ?>
                             <option value="<?= $c['college_id'] ?>" <?= $collegeId === (int)$c['college_id'] ? 'selected' : '' ?>><?= clean($c['college_name']) ?></option>
@@ -251,8 +251,8 @@ require_once __DIR__ . '/../includes/report_period_picker.php';
 
                 <!-- Department Filter -->
                 <div class="form-group" style="margin-bottom:0;">
-                    <label style="font-size:12px;font-weight:600;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.04em;">Department</label>
-                    <select name="department_id" class="form-control" style="font-size:13px;height:38px;border-radius:var(--radius-md);">
+                    <label class="form-label-eyebrow">Department</label>
+                    <select name="department_id" class="form-control form-select">
                         <option value="0">All Departments</option>
                         <?php while ($d = mysqli_fetch_assoc($departments_lookup)): ?>
                             <option value="<?= $d['department_id'] ?>" <?= $deptId === (int)$d['department_id'] ? 'selected' : '' ?>><?= clean($d['department_name']) ?></option>
@@ -262,14 +262,14 @@ require_once __DIR__ . '/../includes/report_period_picker.php';
 
                 <!-- Date From -->
                 <div class="form-group" style="margin-bottom:0;">
-                    <label style="font-size:12px;font-weight:600;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.04em;">Date From</label>
-                    <input type="date" name="date_from" class="form-control" value="<?= clean($dateFrom) ?>" style="font-size:12.5px;height:38px;border-radius:var(--radius-md);">
+                    <label class="form-label-eyebrow">Date From</label>
+                    <input type="date" name="date_from" class="form-control" value="<?= clean($dateFrom) ?>" style="font-size:12.5px;height:42px;">
                 </div>
 
                 <!-- Date To -->
                 <div class="form-group" style="margin-bottom:0;">
-                    <label style="font-size:12px;font-weight:600;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.04em;">Date To</label>
-                    <input type="date" name="date_to" class="form-control" value="<?= clean($dateTo) ?>" style="font-size:12.5px;height:38px;border-radius:var(--radius-md);">
+                    <label class="form-label-eyebrow">Date To</label>
+                    <input type="date" name="date_to" class="form-control" value="<?= clean($dateTo) ?>" style="font-size:12.5px;height:42px;">
                 </div>
             </div>
 

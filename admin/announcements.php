@@ -289,32 +289,62 @@ require_once __DIR__ . '/../includes/header.php';
 
 <!-- Add Announcement Modal -->
 <div class="modal-overlay" id="addAnnouncementModal">
-    <div class="modal-box" style="max-width:540px;border-radius:var(--radius-lg);">
+    <div class="modal-box" style="max-width:560px;border-radius:var(--radius-lg);">
         <form method="POST">
-            <div class="modal-head" style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--color-border);">
-                <h3 style="margin:0;font-size:16px;display:flex;align-items:center;gap:8px;">
-                    <i data-lucide="megaphone" style="width:18px;height:18px;color:var(--color-primary-600);"></i>
-                    New System Announcement
-                </h3>
-                <button type="button" class="modal-close" data-modal-close style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--color-text-muted);">&times;</button>
+            <div class="modal-head" style="display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--color-border);">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <div style="width:36px;height:36px;border-radius:10px;background:var(--color-primary-50);color:var(--color-primary-600);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <i data-lucide="megaphone" style="width:18px;height:18px;"></i>
+                    </div>
+                    <div>
+                        <h3 style="margin:0;font-size:16px;font-weight:700;">New System Broadcast</h3>
+                        <div style="font-size:12px;color:var(--color-text-muted);">Publish announcements to applicant and faculty dashboards.</div>
+                    </div>
+                </div>
+                <button type="button" class="modal-close" data-modal-close aria-label="Close modal">&times;</button>
             </div>
-            <div class="modal-body" style="padding:20px;">
+            <div class="modal-body" style="padding:22px;">
                 <?php csrf_field(); ?>
                 <input type="hidden" name="action" value="create">
-                <div class="form-group" style="margin-bottom:14px;">
-                    <label style="font-weight:600;font-size:13px;display:block;margin-bottom:6px;">Announcement Title</label>
-                    <input type="text" name="title" class="form-control" placeholder="e.g., Intellectual Property Filing Workshop" required style="border-radius:var(--radius-md);">
+                
+                <div class="form-group">
+                    <div class="form-label-row">
+                        <label class="form-label" for="addAnnTitle">
+                            Announcement Headline / Title
+                            <span class="required-mark" aria-hidden="true">*</span>
+                        </label>
+                        <span class="field-counter" id="addAnnTitleCount">0 / 120</span>
+                    </div>
+                    <div class="input-icon-wrap has-left-icon">
+                        <i data-lucide="heading" class="input-icon-left"></i>
+                        <input type="text" id="addAnnTitle" name="title" class="form-control" 
+                               placeholder="e.g. Intellectual Property Filing Workshop for Researchers" 
+                               maxlength="120" data-char-counter="#addAnnTitleCount" required>
+                    </div>
                 </div>
+
                 <div class="form-group" style="margin-bottom:0;">
-                    <label style="font-weight:600;font-size:13px;display:block;margin-bottom:6px;">Announcement Content</label>
-                    <textarea name="content" class="form-control" rows="5" placeholder="Enter the complete text or instructions for the university community…" required style="border-radius:var(--radius-md);"></textarea>
+                    <div class="form-label-row">
+                        <label class="form-label" for="addAnnContent">
+                            Complete Announcement Body
+                            <span class="required-mark" aria-hidden="true">*</span>
+                        </label>
+                        <span class="field-counter" id="addAnnContentCount">0 / 1000</span>
+                    </div>
+                    <textarea id="addAnnContent" name="content" class="form-control" rows="6" 
+                              placeholder="Enter complete details, instructions, venue, or requirements for the university community…" 
+                              maxlength="1000" data-char-counter="#addAnnContentCount" required></textarea>
+                    <div class="form-hint">
+                        <i data-lucide="info"></i>
+                        <span>Markdown line breaks and paragraphs will be preserved when displayed to users.</span>
+                    </div>
                 </div>
             </div>
-            <div class="modal-foot" style="display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:14px 20px;border-top:1px solid var(--color-border);background:var(--color-surface-subtle);">
+            <div class="modal-foot" style="display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:16px 22px;border-top:1px solid var(--color-border);background:var(--color-surface-subtle);border-bottom-left-radius:var(--radius-lg);border-bottom-right-radius:var(--radius-lg);">
                 <button type="button" class="btn btn-outline btn-sm" data-modal-close>Cancel</button>
-                <button type="submit" class="btn btn-primary btn-sm">
-                    <i data-lucide="send" style="width:13px;height:13px;"></i>
-                    Post Announcement
+                <button type="submit" class="btn btn-primary btn-sm" style="padding:8px 18px;">
+                    <i data-lucide="send" style="width:14px;height:14px;"></i>
+                    Publish Broadcast
                 </button>
             </div>
         </form>
@@ -324,32 +354,51 @@ require_once __DIR__ . '/../includes/header.php';
 <!-- Edit Announcement Modals -->
 <?php foreach ($items as $a): ?>
 <div class="modal-overlay" id="editAnnouncement<?= (int)$a['announcement_id'] ?>">
-    <div class="modal-box" style="max-width:540px;border-radius:var(--radius-lg);">
+    <div class="modal-box" style="max-width:560px;border-radius:var(--radius-lg);">
         <form method="POST">
-            <div class="modal-head" style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--color-border);">
-                <h3 style="margin:0;font-size:16px;display:flex;align-items:center;gap:8px;">
-                    <i data-lucide="edit-3" style="width:18px;height:18px;color:var(--color-primary-600);"></i>
-                    Edit Announcement
-                </h3>
-                <button type="button" class="modal-close" data-modal-close style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--color-text-muted);">&times;</button>
+            <div class="modal-head" style="display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--color-border);">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <div style="width:36px;height:36px;border-radius:10px;background:var(--color-primary-50);color:var(--color-primary-600);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <i data-lucide="edit-3" style="width:18px;height:18px;"></i>
+                    </div>
+                    <div>
+                        <h3 style="margin:0;font-size:16px;font-weight:700;">Edit Announcement #<?= (int)$a['announcement_id'] ?></h3>
+                        <div style="font-size:12px;color:var(--color-text-muted);">Posted on <?= format_date($a['posted_at'], 'M d, Y') ?> by <?= clean($a['first_name'] . ' ' . $a['last_name']) ?></div>
+                    </div>
+                </div>
+                <button type="button" class="modal-close" data-modal-close aria-label="Close modal">&times;</button>
             </div>
-            <div class="modal-body" style="padding:20px;">
+            <div class="modal-body" style="padding:22px;">
                 <?php csrf_field(); ?>
                 <input type="hidden" name="action" value="edit">
                 <input type="hidden" name="announcement_id" value="<?= (int)$a['announcement_id'] ?>">
-                <div class="form-group" style="margin-bottom:14px;">
-                    <label style="font-weight:600;font-size:13px;display:block;margin-bottom:6px;">Announcement Title</label>
-                    <input type="text" name="title" class="form-control" value="<?= clean($a['title']) ?>" required style="border-radius:var(--radius-md);">
+
+                <div class="form-group">
+                    <div class="form-label-row">
+                        <label class="form-label" for="editAnnTitle<?= $a['announcement_id'] ?>">Announcement Headline</label>
+                        <span class="field-counter" id="editAnnTitleCount<?= $a['announcement_id'] ?>">0 / 120</span>
+                    </div>
+                    <div class="input-icon-wrap has-left-icon">
+                        <i data-lucide="heading" class="input-icon-left"></i>
+                        <input type="text" id="editAnnTitle<?= $a['announcement_id'] ?>" name="title" class="form-control" 
+                               value="<?= clean($a['title']) ?>" maxlength="120" 
+                               data-char-counter="#editAnnTitleCount<?= $a['announcement_id'] ?>" required>
+                    </div>
                 </div>
+
                 <div class="form-group" style="margin-bottom:0;">
-                    <label style="font-weight:600;font-size:13px;display:block;margin-bottom:6px;">Announcement Content</label>
-                    <textarea name="content" class="form-control" rows="5" required style="border-radius:var(--radius-md);"><?= clean($a['content']) ?></textarea>
+                    <div class="form-label-row">
+                        <label class="form-label" for="editAnnContent<?= $a['announcement_id'] ?>">Announcement Content</label>
+                        <span class="field-counter" id="editAnnContentCount<?= $a['announcement_id'] ?>">0 / 1000</span>
+                    </div>
+                    <textarea id="editAnnContent<?= $a['announcement_id'] ?>" name="content" class="form-control" rows="6" 
+                              maxlength="1000" data-char-counter="#editAnnContentCount<?= $a['announcement_id'] ?>" required><?= clean($a['content']) ?></textarea>
                 </div>
             </div>
-            <div class="modal-foot" style="display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:14px 20px;border-top:1px solid var(--color-border);background:var(--color-surface-subtle);">
+            <div class="modal-foot" style="display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:16px 22px;border-top:1px solid var(--color-border);background:var(--color-surface-subtle);border-bottom-left-radius:var(--radius-lg);border-bottom-right-radius:var(--radius-lg);">
                 <button type="button" class="btn btn-outline btn-sm" data-modal-close>Cancel</button>
-                <button type="submit" class="btn btn-primary btn-sm">
-                    <i data-lucide="check" style="width:13px;height:13px;"></i>
+                <button type="submit" class="btn btn-primary btn-sm" style="padding:8px 18px;">
+                    <i data-lucide="check" style="width:14px;height:14px;"></i>
                     Save Changes
                 </button>
             </div>

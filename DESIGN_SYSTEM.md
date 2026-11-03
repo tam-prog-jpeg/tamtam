@@ -135,6 +135,32 @@ This Design System serves as the canonical source of truth for all frontend inte
 - Left block: Descriptive role title and high-clarity scope explanation.
 - Right block (`.action-controls-group`): Quick navigation CTAs, filtered queue shortcuts, and export triggers.
 
+### 9. Professional Admin Input & Form Architecture
+Governed by UI-UX Kit (§B2 Dashboard/Admin & §B3 App/Product UI standards):
+- **Typography & Proportions:**
+  - Base input height `42px`, padding `9.5px 13px`, font-size `13.5px`, border-radius `var(--radius-md)` (`12px`).
+  - Active focus ring: `3px` glowing aura (`0 0 0 3px rgba(37, 99, 235, 0.14)`) with high-contrast cobalt border (`#2563EB`).
+  - Dark mode focus ring: High-visibility electric blue (`#3B82F6` with `rgba(59, 130, 246, 0.22)` glow).
+- **Icon Adornment (`.input-icon-wrap`):**
+  - Left prefix icon (`.input-icon-left`) optically centered at `top: 50%; transform: translateY(-50%)`, 16px size.
+  - Interactive tint: Transitions dynamically to brand blue (`#2563EB`) on container `:focus-within`.
+  - Right interactive actions: Password reveal toggle (`.password-toggle-btn`) with Lucide `eye`/`eye-off` and clearable inputs (`.input-clear-btn`).
+- **Connected Addon Groups (`.input-group`):**
+  - Seamlessly fused prefix/suffix text badges (`.input-group-text`) and action buttons (`.input-group-btn`) eliminating double borders.
+  - Used for units (e.g. `MB per file`, `@` username handle).
+- **Custom Vector Selects (`.form-select`):**
+  - Clean inline SVG chevron icon (`stroke: #6B7280`, `#9CA3AF` in dark mode) replacing unsightly native browser dropdown arrows.
+- **Modern Accessible Switches (`.form-switch`):**
+  - Reusable toggle with smooth spring animation, 44×24px track, 20px circular thumb (`transform: translateX(20px)`), and full `:focus-visible` ring.
+  - Color variants: `.form-switch-warning` (amber), `.form-switch-danger` (coral), `.form-switch-success` (emerald).
+- **Interactive File Dropzone (`.file-dropzone`):**
+  - Drag-and-drop zone with dashed border, active dragover state, preview pill with file name, human-readable file size (KB/MB), and instant remove action.
+- **Micro-Interactions & Assistive Feedback:**
+  - **Live Character Counters (`.field-counter`):** Monospaced counter (`X / Y`) transitioning to amber at 85% and red at limit.
+  - **Password Strength Meter (`.password-strength-wrap`):** 4-segment colored gauge with real-time heuristic assessment (Weak, Fair, Good, Strong).
+  - **Live Match Validator:** Automatic comparison between target and confirm fields with instant green check / red warning indicators.
+  - **Anti-Double-Submit UX (`.btn-loading`):** Built-in CSS spinner locking the button and preserving layout geometry.
+
 ---
 
 ## 6. Dark Mode Architecture (`data-theme="dark"`)

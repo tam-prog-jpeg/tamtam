@@ -291,21 +291,24 @@ require_once __DIR__ . '/../includes/header.php';
     <div style="display:flex;flex-direction:column;gap:20px;">
         
         <!-- Assignment Card -->
-        <div class="card">
-            <div class="card-header">
-                <div style="display:flex;align-items:center;gap:8px;">
-                    <svg class="lucide-icon" style="color:var(--color-primary-600);" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                    <h3>Staff & Evaluator Assignment</h3>
+        <div class="card" style="border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);">
+            <div class="card-header" style="padding:16px 20px;border-bottom:1px solid var(--color-border);background:var(--color-surface);display:flex;align-items:center;gap:10px;">
+                <div style="width:34px;height:34px;border-radius:10px;background:var(--color-primary-50);color:var(--color-primary-600);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i data-lucide="users" style="width:18px;height:18px;"></i>
+                </div>
+                <div>
+                    <h3 style="margin:0;font-size:15px;font-weight:700;">Staff &amp; Evaluator Assignment</h3>
+                    <div style="font-size:12px;color:var(--color-text-muted);">Assign workflow personnel for intake and technical review.</div>
                 </div>
             </div>
-            <div class="card-body">
+            <div class="card-body" style="padding:20px;">
                 <form method="POST">
                     <?php csrf_field(); ?>
                     <input type="hidden" name="action" value="assign">
                     
                     <div class="form-group">
-                        <label style="font-size:12px;font-weight:600;">Assigned IPO Staff</label>
-                        <select name="staff_id" class="form-control">
+                        <label class="form-label" for="staff_id">Assigned IPO Staff (Intake &amp; Compliance)</label>
+                        <select name="staff_id" id="staff_id" class="form-control form-select">
                             <option value="">— Unassigned —</option>
                             <?php mysqli_data_seek($staffList, 0); while ($s = mysqli_fetch_assoc($staffList)): ?>
                                 <option value="<?= $s['user_id'] ?>" <?= (int)$application['assigned_staff_id'] === (int)$s['user_id'] ? 'selected' : '' ?>>
@@ -313,12 +316,15 @@ require_once __DIR__ . '/../includes/header.php';
                                 </option>
                             <?php endwhile; ?>
                         </select>
-                        <span style="font-size:11px;color:var(--color-text-muted);margin-top:4px;display:block;">Staff member handles intake, requirements, and compliance.</span>
+                        <div class="form-hint">
+                            <i data-lucide="info"></i>
+                            <span>Staff member conducts completeness check and intake logging.</span>
+                        </div>
                     </div>
 
-                    <div class="form-group">
-                        <label style="font-size:12px;font-weight:600;">Assigned Technical Evaluator</label>
-                        <select name="evaluator_id" class="form-control">
+                    <div class="form-group" style="margin-bottom:18px;">
+                        <label class="form-label" for="evaluator_id">Assigned Technical Evaluator (Novelty Review)</label>
+                        <select name="evaluator_id" id="evaluator_id" class="form-control form-select">
                             <option value="">— Unassigned —</option>
                             <?php mysqli_data_seek($evaluatorList, 0); while ($e = mysqli_fetch_assoc($evaluatorList)): ?>
                                 <option value="<?= $e['user_id'] ?>" <?= (int)$application['assigned_evaluator_id'] === (int)$e['user_id'] ? 'selected' : '' ?>>
@@ -326,33 +332,39 @@ require_once __DIR__ . '/../includes/header.php';
                                 </option>
                             <?php endwhile; ?>
                         </select>
-                        <span style="font-size:11px;color:var(--color-text-muted);margin-top:4px;display:block;">Evaluator conducts patentability search and formal assessment.</span>
+                        <div class="form-hint">
+                            <i data-lucide="info"></i>
+                            <span>Evaluator conducts prior art search and patentability audit.</span>
+                        </div>
                     </div>
 
-                    <button type="submit" class="btn btn-primary btn-sm" style="width:100%;justify-content:center;height:38px;">
-                        <svg class="lucide-icon" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-                        Save Assignment
+                    <button type="submit" class="btn btn-primary btn-sm" style="width:100%;justify-content:center;height:40px;">
+                        <i data-lucide="save" style="width:14px;height:14px;"></i>
+                        Save Personnel Assignment
                     </button>
                 </form>
             </div>
         </div>
 
         <!-- Status Management Card -->
-        <div class="card">
-            <div class="card-header">
-                <div style="display:flex;align-items:center;gap:8px;">
-                    <svg class="lucide-icon" style="color:var(--color-success);" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                    <h3>Update Application Status</h3>
+        <div class="card" style="border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);">
+            <div class="card-header" style="padding:16px 20px;border-bottom:1px solid var(--color-border);background:var(--color-surface);display:flex;align-items:center;gap:10px;">
+                <div style="width:34px;height:34px;border-radius:10px;background:var(--color-success-bg);color:var(--color-success);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i data-lucide="git-commit" style="width:18px;height:18px;"></i>
+                </div>
+                <div>
+                    <h3 style="margin:0;font-size:15px;font-weight:700;">Update Application Status</h3>
+                    <div style="font-size:12px;color:var(--color-text-muted);">Advance the application through official examination gates.</div>
                 </div>
             </div>
-            <div class="card-body">
+            <div class="card-body" style="padding:20px;">
                 <form method="POST">
                     <?php csrf_field(); ?>
                     <input type="hidden" name="action" value="update_status">
                     
                     <div class="form-group">
-                        <label style="font-size:12px;font-weight:600;">Current Status Progression</label>
-                        <select name="status" class="form-control" required>
+                        <label class="form-label" for="status_select">Current Status Progression</label>
+                        <select name="status" id="status_select" class="form-control form-select" required>
                             <?php foreach (['pending','under_review','evaluated','returned','approved','rejected'] as $s): ?>
                                 <option value="<?= $s ?>" <?= $application['status'] === $s ? 'selected' : '' ?>>
                                     <?= status_label($s) ?>
@@ -362,13 +374,34 @@ require_once __DIR__ . '/../includes/header.php';
                     </div>
 
                     <div class="form-group">
-                        <label style="font-size:12px;font-weight:600;">Status Remarks / Audit Note</label>
-                        <textarea name="remarks" class="form-control" rows="3" placeholder="Provide context, required revisions, or approval notice…"></textarea>
+                        <div class="form-label-row">
+                            <label class="form-label" for="statusRemarks">Official Audit Remarks / Feedback</label>
+                            <span class="field-counter" id="statusRemarksCount">0 / 500</span>
+                        </div>
+                        <textarea name="remarks" id="statusRemarks" class="form-control" rows="3" 
+                                  placeholder="Provide official rationale, required revisions, or notification notice to applicant…" 
+                                  maxlength="500" data-char-counter="#statusRemarksCount"></textarea>
+                        
+                        <!-- Quick Preset Template Chips -->
+                        <div style="margin-top:8px;">
+                            <span style="font-size:11px;color:var(--color-text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.04em;">Preset Remarks:</span>
+                            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;">
+                                <button type="button" class="btn btn-outline btn-xs" style="font-size:11px;padding:2px 8px;" onclick="document.getElementById('statusRemarks').value='Formalities and submission requirements verified complete. Passed for technical evaluation.'; document.getElementById('statusRemarks').dispatchEvent(new Event('input'));">
+                                    Formalities Complete
+                                </button>
+                                <button type="button" class="btn btn-outline btn-xs" style="font-size:11px;padding:2px 8px;" onclick="document.getElementById('statusRemarks').value='Technical assessment passed. Application recommended for certificate issuance.'; document.getElementById('statusRemarks').dispatchEvent(new Event('input'));">
+                                    Passed Evaluation
+                                </button>
+                                <button type="button" class="btn btn-outline btn-xs" style="font-size:11px;padding:2px 8px;" onclick="document.getElementById('statusRemarks').value='Formality deficiencies identified. Please provide detailed description and updated claims.'; document.getElementById('statusRemarks').dispatchEvent(new Event('input'));">
+                                    Revisions Needed
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
-                    <button type="submit" class="btn btn-success btn-sm" style="width:100%;justify-content:center;height:38px;" data-confirm="Confirm changing the application status? The applicant will be notified immediately.">
-                        <svg class="lucide-icon" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>
-                        Update Status
+                    <button type="submit" class="btn btn-success btn-sm" style="width:100%;justify-content:center;height:40px;" data-confirm="Confirm changing the application status? The applicant will be notified immediately.">
+                        <i data-lucide="check" style="width:14px;height:14px;"></i>
+                        Commit Status Progression
                     </button>
                 </form>
             </div>

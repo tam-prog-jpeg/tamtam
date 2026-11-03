@@ -336,16 +336,16 @@ require_once __DIR__ . '/../includes/header.php';
     <div class="card-body" style="padding:16px;">
         <form method="GET" style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:12px;align-items:end;">
             <div class="form-group" style="margin-bottom:0;">
-                <label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--color-text-muted);letter-spacing:0.04em;">Search Personnel</label>
-                <div style="position:relative;">
-                    <svg class="lucide-icon" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--color-text-subtle);pointer-events:none;width:15px;height:15px;" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    <input type="text" name="q" class="form-control" style="padding-left:32px;" value="<?= clean($search) ?>" placeholder="Name, username, email…">
+                <label class="form-label-eyebrow">Search Personnel</label>
+                <div class="input-icon-wrap has-left-icon">
+                    <i data-lucide="search" class="input-icon-left"></i>
+                    <input type="text" name="q" class="form-control" value="<?= clean($search) ?>" placeholder="Name, username, email…">
                 </div>
             </div>
 
             <div class="form-group" style="margin-bottom:0;">
-                <label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--color-text-muted);letter-spacing:0.04em;">Assigned Role</label>
-                <select name="role_id" class="form-control">
+                <label class="form-label-eyebrow">Assigned Role</label>
+                <select name="role_id" class="form-control form-select">
                     <option value="0">All Roles</option>
                     <?php foreach ($allRoles as $r): ?>
                         <option value="<?= $r['role_id'] ?>" <?= $roleF === (int)$r['role_id'] ? 'selected' : '' ?>><?= clean($r['role_name']) ?></option>
@@ -354,8 +354,8 @@ require_once __DIR__ . '/../includes/header.php';
             </div>
 
             <div class="form-group" style="margin-bottom:0;">
-                <label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--color-text-muted);letter-spacing:0.04em;">Status</label>
-                <select name="status" class="form-control">
+                <label class="form-label-eyebrow">Account Status</label>
+                <select name="status" class="form-control form-select">
                     <option value="">All Statuses</option>
                     <?php foreach (['active','inactive','suspended'] as $s): ?>
                         <option value="<?= $s ?>" <?= $statusF === $s ? 'selected' : '' ?>><?= ucfirst($s) ?></option>
@@ -364,11 +364,11 @@ require_once __DIR__ . '/../includes/header.php';
             </div>
 
             <div style="display:flex;gap:6px;">
-                <button type="submit" class="btn btn-primary btn-sm" style="height:38px;">
-                    <svg class="lucide-icon" viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                <button type="submit" class="btn btn-primary btn-sm" style="height:42px;padding:0 16px;">
+                    <i data-lucide="filter" style="width:14px;height:14px;"></i>
                     Filter
                 </button>
-                <a href="<?= BASE_URL ?>admin/users.php" class="btn btn-outline btn-sm" style="height:38px;padding:0 12px;">Reset</a>
+                <a href="<?= BASE_URL ?>admin/users.php" class="btn btn-outline btn-sm" style="height:42px;display:inline-flex;align-items:center;padding:0 14px;">Reset</a>
             </div>
         </form>
     </div>
@@ -508,57 +508,101 @@ require_once __DIR__ . '/../includes/header.php';
 
 <!-- Add User Modal -->
 <div class="modal-overlay" id="addUserModal">
-    <div class="modal-box">
+    <div class="modal-box" style="border-radius:var(--radius-lg);max-width:520px;">
         <form method="POST">
-            <div class="modal-head">
-                <div style="display:flex;align-items:center;gap:8px;">
-                    <div style="width:32px;height:32px;border-radius:50%;background:var(--color-primary-50);color:var(--color-primary-600);display:flex;align-items:center;justify-content:center;">
-                        <svg class="lucide-icon" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+            <div class="modal-head" style="padding:18px 22px;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <div style="width:36px;height:36px;border-radius:10px;background:var(--color-primary-50);color:var(--color-primary-600);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <i data-lucide="user-plus" style="width:18px;height:18px;"></i>
                     </div>
-                    <h3>Create New System User</h3>
+                    <div>
+                        <h3 style="margin:0;font-size:16px;font-weight:700;">Create Institutional Account</h3>
+                        <div style="font-size:12px;color:var(--color-text-muted);">Provision internal access for IPO staff, evaluators, or managers.</div>
+                    </div>
                 </div>
-                <button type="button" class="modal-close" data-modal-close>&times;</button>
+                <button type="button" class="modal-close" data-modal-close aria-label="Close modal">&times;</button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body" style="padding:22px;">
                 <?php csrf_field(); ?>
                 <input type="hidden" name="action" value="create">
                 
-                <div class="grid-2" style="gap:12px;">
-                    <div class="form-group">
-                        <label style="font-size:12px;font-weight:600;">First Name</label>
-                        <input type="text" name="first_name" class="form-control" placeholder="Juan" required>
+                <div class="form-row" style="margin-bottom:16px;">
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label class="form-label">
+                            First Name
+                            <span class="required-mark" aria-hidden="true">*</span>
+                        </label>
+                        <div class="input-icon-wrap has-left-icon">
+                            <i data-lucide="user" class="input-icon-left"></i>
+                            <input type="text" name="first_name" class="form-control" placeholder="e.g. Juan" required>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label style="font-size:12px;font-weight:600;">Last Name</label>
-                        <input type="text" name="last_name" class="form-control" placeholder="Dela Cruz" required>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label class="form-label">
+                            Last Name
+                            <span class="required-mark" aria-hidden="true">*</span>
+                        </label>
+                        <div class="input-icon-wrap has-left-icon">
+                            <i data-lucide="user" class="input-icon-left"></i>
+                            <input type="text" name="last_name" class="form-control" placeholder="e.g. Dela Cruz" required>
+                        </div>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label style="font-size:12px;font-weight:600;">Username</label>
-                    <input type="text" name="username" class="form-control" placeholder="jdelacruz" minlength="4" required>
+                    <label class="form-label">
+                        Username
+                        <span class="required-mark" aria-hidden="true">*</span>
+                    </label>
+                    <div class="input-group">
+                        <span class="input-group-text" style="font-family:var(--font-mono);font-weight:600;">@</span>
+                        <input type="text" name="username" class="form-control" placeholder="jdelacruz" minlength="4" required style="font-family:var(--font-mono);">
+                    </div>
+                    <div class="form-hint">
+                        <i data-lucide="info"></i>
+                        <span>Must contain at least 4 alphanumeric characters without spaces.</span>
+                    </div>
                 </div>
 
                 <div class="form-group">
-                    <label style="font-size:12px;font-weight:600;">Email Address</label>
-                    <input type="email" name="email" class="form-control" placeholder="juan.delacruz@zppsu.edu.ph" required>
+                    <label class="form-label">
+                        Institutional Email Address
+                        <span class="required-mark" aria-hidden="true">*</span>
+                    </label>
+                    <div class="input-icon-wrap has-left-icon">
+                        <i data-lucide="mail" class="input-icon-left"></i>
+                        <input type="email" name="email" class="form-control" placeholder="juan.delacruz@zppsu.edu.ph" required>
+                    </div>
+                    <div class="form-hint">
+                        <i data-lucide="info"></i>
+                        <span>University email address used for login and notifications.</span>
+                    </div>
                 </div>
 
-                <div class="form-group">
-                    <label style="font-size:12px;font-weight:600;">Assigned Role</label>
-                    <select name="role_id" class="form-control" required>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label class="form-label">
+                        Assigned Institutional Role
+                        <span class="required-mark" aria-hidden="true">*</span>
+                    </label>
+                    <select name="role_id" class="form-control form-select" required>
                         <option value="">— Select Institutional Role —</option>
-                        <option value="1">Administrator</option>
-                        <option value="2">Staff</option>
-                        <option value="3">Evaluator</option>
-                        <option value="4">Manager</option>
+                        <option value="1">Administrator (System Management &amp; Settings)</option>
+                        <option value="2">Staff (Document Intake &amp; Initial Screening)</option>
+                        <option value="3">Evaluator (Technical &amp; Novelty Assessment)</option>
+                        <option value="4">Manager (Executive Approvals &amp; Certification)</option>
                     </select>
-                    <span style="font-size:11.5px;color:var(--color-text-muted);margin-top:4px;display:block;">Applicant accounts self-register via the public portal.</span>
+                    <div class="form-hint" style="margin-top:6px;">
+                        <i data-lucide="shield"></i>
+                        <span>Applicant accounts register independently via the public admissions portal.</span>
+                    </div>
                 </div>
             </div>
-            <div class="modal-foot">
+            <div class="modal-foot" style="padding:16px 22px;background:var(--color-surface-subtle);border-top:1px solid var(--color-border);border-bottom-left-radius:var(--radius-lg);border-bottom-right-radius:var(--radius-lg);">
                 <button type="button" class="btn btn-outline btn-sm" data-modal-close>Cancel</button>
-                <button type="submit" class="btn btn-primary btn-sm">Create Account</button>
+                <button type="submit" class="btn btn-primary btn-sm" style="padding:8px 18px;">
+                    <i data-lucide="plus" style="width:14px;height:14px;"></i>
+                    Create User Account
+                </button>
             </div>
         </form>
     </div>
@@ -568,53 +612,72 @@ require_once __DIR__ . '/../includes/header.php';
 <?php foreach ($userList as $u): ?>
     <!-- Edit Modal -->
     <div class="modal-overlay" id="editModal<?= $u['user_id'] ?>">
-        <div class="modal-box">
+        <div class="modal-box" style="border-radius:var(--radius-lg);max-width:520px;">
             <form method="POST">
-                <div class="modal-head">
-                    <div style="display:flex;align-items:center;gap:8px;">
-                        <div style="width:32px;height:32px;border-radius:50%;background:var(--color-primary-50);color:var(--color-primary-600);display:flex;align-items:center;justify-content:center;">
-                            <svg class="lucide-icon" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                <div class="modal-head" style="padding:18px 22px;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <div style="width:36px;height:36px;border-radius:10px;background:var(--color-primary-50);color:var(--color-primary-600);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                            <i data-lucide="edit-3" style="width:18px;height:18px;"></i>
                         </div>
-                        <h3>Edit User: <?= clean($u['username']) ?></h3>
+                        <div>
+                            <h3 style="margin:0;font-size:16px;font-weight:700;">Edit User: @<?= clean($u['username']) ?></h3>
+                            <div style="font-size:12px;color:var(--color-text-muted);font-family:var(--font-mono);">ID #<?= $u['user_id'] ?> &bull; <?= clean($u['email']) ?></div>
+                        </div>
                     </div>
-                    <button type="button" class="modal-close" data-modal-close>&times;</button>
+                    <button type="button" class="modal-close" data-modal-close aria-label="Close modal">&times;</button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body" style="padding:22px;">
                     <?php csrf_field(); ?>
                     <input type="hidden" name="action" value="edit">
                     <input type="hidden" name="user_id" value="<?= $u['user_id'] ?>">
 
-                    <div class="grid-2" style="gap:12px;">
-                        <div class="form-group">
-                            <label style="font-size:12px;font-weight:600;">First Name</label>
-                            <input type="text" name="first_name" class="form-control" value="<?= clean($u['first_name']) ?>" required>
+                    <div class="form-row" style="margin-bottom:16px;">
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label class="form-label">First Name</label>
+                            <div class="input-icon-wrap has-left-icon">
+                                <i data-lucide="user" class="input-icon-left"></i>
+                                <input type="text" name="first_name" class="form-control" value="<?= clean($u['first_name']) ?>" required>
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label style="font-size:12px;font-weight:600;">Last Name</label>
-                            <input type="text" name="last_name" class="form-control" value="<?= clean($u['last_name']) ?>" required>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label class="form-label">Last Name</label>
+                            <div class="input-icon-wrap has-left-icon">
+                                <i data-lucide="user" class="input-icon-left"></i>
+                                <input type="text" name="last_name" class="form-control" value="<?= clean($u['last_name']) ?>" required>
+                            </div>
                         </div>
                     </div>
 
                     <div class="form-group">
-                        <label style="font-size:12px;font-weight:600;">Email Address</label>
-                        <input type="email" name="email" class="form-control" value="<?= clean($u['email']) ?>" required>
+                        <label class="form-label">Email Address</label>
+                        <div class="input-icon-wrap has-left-icon">
+                            <i data-lucide="mail" class="input-icon-left"></i>
+                            <input type="email" name="email" class="form-control" value="<?= clean($u['email']) ?>" required>
+                        </div>
                     </div>
 
-                    <div class="form-group">
-                        <label style="font-size:12px;font-weight:600;">Role</label>
-                        <select name="role_id" class="form-control" required <?= ((int)$u['user_id'] === (int)$_SESSION['user_id']) ? 'disabled title="Cannot change your own role"' : '' ?>>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label class="form-label">Institutional Role</label>
+                        <select name="role_id" class="form-control form-select" required <?= ((int)$u['user_id'] === (int)$_SESSION['user_id']) ? 'disabled title="Cannot change your own role"' : '' ?>>
                             <?php foreach ($allRoles as $r): ?>
                                 <option value="<?= $r['role_id'] ?>" <?= (int)$u['role_id'] === (int)$r['role_id'] ? 'selected' : '' ?>><?= clean($r['role_name']) ?></option>
                             <?php endforeach; ?>
                         </select>
                         <?php if ((int)$u['user_id'] === (int)$_SESSION['user_id']): ?>
                             <input type="hidden" name="role_id" value="<?= $u['role_id'] ?>">
+                            <div class="form-hint" style="color:var(--color-warning);">
+                                <i data-lucide="alert-circle"></i>
+                                <span>You cannot reassign your own role away from Administrator.</span>
+                            </div>
                         <?php endif; ?>
                     </div>
                 </div>
-                <div class="modal-foot">
+                <div class="modal-foot" style="padding:16px 22px;background:var(--color-surface-subtle);border-top:1px solid var(--color-border);border-bottom-left-radius:var(--radius-lg);border-bottom-right-radius:var(--radius-lg);">
                     <button type="button" class="btn btn-outline btn-sm" data-modal-close>Cancel</button>
-                    <button type="submit" class="btn btn-primary btn-sm">Save Changes</button>
+                    <button type="submit" class="btn btn-primary btn-sm" style="padding:8px 18px;">
+                        <i data-lucide="check" style="width:14px;height:14px;"></i>
+                        Save Changes
+                    </button>
                 </div>
             </form>
         </div>
@@ -622,34 +685,81 @@ require_once __DIR__ . '/../includes/header.php';
 
     <!-- Reset Password Modal -->
     <div class="modal-overlay" id="resetPwModal<?= $u['user_id'] ?>">
-        <div class="modal-box">
+        <div class="modal-box" style="border-radius:var(--radius-lg);max-width:480px;">
             <form method="POST">
-                <div class="modal-head">
-                    <div style="display:flex;align-items:center;gap:8px;">
-                        <div style="width:32px;height:32px;border-radius:50%;background:#FEF3C7;color:#D97706;display:flex;align-items:center;justify-content:center;">
-                            <svg class="lucide-icon" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg>
+                <div class="modal-head" style="padding:18px 22px;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <div style="width:36px;height:36px;border-radius:10px;background:var(--color-warning-bg);color:var(--color-warning);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                            <i data-lucide="key-round" style="width:18px;height:18px;"></i>
                         </div>
-                        <h3>Reset Password: <?= clean($u['username']) ?></h3>
+                        <div>
+                            <h3 style="margin:0;font-size:16px;font-weight:700;">Reset Password</h3>
+                            <div style="font-size:12px;color:var(--color-text-muted);">Account: <strong><?= clean($u['first_name'] . ' ' . $u['last_name']) ?></strong> (@<?= clean($u['username']) ?>)</div>
+                        </div>
                     </div>
-                    <button type="button" class="modal-close" data-modal-close>&times;</button>
+                    <button type="button" class="modal-close" data-modal-close aria-label="Close modal">&times;</button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body" style="padding:22px;">
                     <?php csrf_field(); ?>
                     <input type="hidden" name="action" value="reset_password">
                     <input type="hidden" name="user_id" value="<?= $u['user_id'] ?>">
 
+                    <!-- New Password Input with reveal eye and live strength meter -->
                     <div class="form-group">
-                        <label style="font-size:12px;font-weight:600;">New Password (min 8 characters)</label>
-                        <input type="password" name="new_password" class="form-control" minlength="8" required placeholder="••••••••">
+                        <label class="form-label" for="newPass<?= $u['user_id'] ?>">New Password (minimum 8 characters)</label>
+                        <div class="input-icon-wrap has-left-icon has-right-icon">
+                            <i data-lucide="lock" class="input-icon-left"></i>
+                            <input type="password" id="newPass<?= $u['user_id'] ?>" name="new_password" class="form-control" 
+                                   minlength="8" required placeholder="Enter strong new password"
+                                   data-strength-meter="#userStrength<?= $u['user_id'] ?>">
+                            <button type="button" class="password-toggle-btn" data-password-target="#newPass<?= $u['user_id'] ?>" aria-label="Toggle password visibility">
+                                <i data-lucide="eye"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- Live Password Strength Indicator -->
+                        <div class="password-strength-wrap" id="userStrength<?= $u['user_id'] ?>">
+                            <div class="password-strength-track">
+                                <span class="password-strength-segment"></span>
+                                <span class="password-strength-segment"></span>
+                                <span class="password-strength-segment"></span>
+                                <span class="password-strength-segment"></span>
+                            </div>
+                            <div class="password-strength-status">
+                                <span>Strength: <strong class="strength-text">Enter password</strong></span>
+                                <span>Min. 8 characters</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label style="font-size:12px;font-weight:600;">Confirm Password</label>
-                        <input type="password" name="confirm_password" class="form-control" minlength="8" required placeholder="••••••••">
+
+                    <!-- Confirm Password Input with live match validator -->
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label class="form-label" for="confirmPass<?= $u['user_id'] ?>">Confirm New Password</label>
+                        <div class="input-icon-wrap has-left-icon has-right-icon">
+                            <i data-lucide="lock" class="input-icon-left"></i>
+                            <input type="password" id="confirmPass<?= $u['user_id'] ?>" name="confirm_password" class="form-control" 
+                                   minlength="8" required placeholder="Re-enter password"
+                                   data-match-target="#newPass<?= $u['user_id'] ?>">
+                            <button type="button" class="password-toggle-btn" data-password-target="#confirmPass<?= $u['user_id'] ?>" aria-label="Toggle password visibility">
+                                <i data-lucide="eye"></i>
+                            </button>
+                        </div>
+                        <div class="invalid-feedback">
+                            <i data-lucide="alert-circle"></i>
+                            <span>Passwords do not match.</span>
+                        </div>
+                        <div class="valid-feedback">
+                            <i data-lucide="check-circle-2"></i>
+                            <span>Passwords match!</span>
+                        </div>
                     </div>
                 </div>
-                <div class="modal-foot">
+                <div class="modal-foot" style="padding:16px 22px;background:var(--color-surface-subtle);border-top:1px solid var(--color-border);border-bottom-left-radius:var(--radius-lg);border-bottom-right-radius:var(--radius-lg);">
                     <button type="button" class="btn btn-outline btn-sm" data-modal-close>Cancel</button>
-                    <button type="submit" class="btn btn-warning btn-sm">Update Password</button>
+                    <button type="submit" class="btn btn-warning btn-sm" style="padding:8px 18px;">
+                        <i data-lucide="key" style="width:14px;height:14px;"></i>
+                        Update Password
+                    </button>
                 </div>
             </form>
         </div>

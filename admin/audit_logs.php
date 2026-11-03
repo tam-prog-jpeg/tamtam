@@ -187,33 +187,33 @@ require_once __DIR__ . '/../includes/header.php';
 </div>
 
 <!-- 3. Search & Date Filter Bar Card -->
-<div class="card" style="margin-bottom:20px;">
-    <div class="card-body" style="padding:16px;">
+<div class="card" style="margin-bottom:20px;border-radius:var(--radius-lg);">
+    <div class="card-body" style="padding:16px 20px;">
         <form method="GET" style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:12px;align-items:end;">
             <div class="form-group" style="margin-bottom:0;">
-                <label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--color-text-muted);letter-spacing:0.04em;">Search Logs</label>
-                <div style="position:relative;">
-                    <svg class="lucide-icon" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--color-text-subtle);pointer-events:none;width:15px;height:15px;" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    <input type="text" name="q" class="form-control" style="padding-left:32px;" value="<?= clean($search) ?>" placeholder="Action, details, user…">
+                <label class="form-label-eyebrow">Search Security Trail</label>
+                <div class="input-icon-wrap has-left-icon">
+                    <i data-lucide="search" class="input-icon-left"></i>
+                    <input type="text" name="q" class="form-control" value="<?= clean($search) ?>" placeholder="Action, details, user…">
                 </div>
             </div>
 
             <div class="form-group" style="margin-bottom:0;">
-                <label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--color-text-muted);letter-spacing:0.04em;">From Date</label>
-                <input type="date" name="date_from" class="form-control" value="<?= clean($dateFrom) ?>">
+                <label class="form-label-eyebrow">From Date</label>
+                <input type="date" name="date_from" class="form-control" value="<?= clean($dateFrom) ?>" style="height:42px;">
             </div>
 
             <div class="form-group" style="margin-bottom:0;">
-                <label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--color-text-muted);letter-spacing:0.04em;">To Date</label>
-                <input type="date" name="date_to" class="form-control" value="<?= clean($dateTo) ?>">
+                <label class="form-label-eyebrow">To Date</label>
+                <input type="date" name="date_to" class="form-control" value="<?= clean($dateTo) ?>" style="height:42px;">
             </div>
 
             <div style="display:flex;gap:6px;">
-                <button type="submit" class="btn btn-primary btn-sm" style="height:38px;">
-                    <svg class="lucide-icon" viewBox="0 0 24 24"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                <button type="submit" class="btn btn-primary btn-sm" style="height:42px;padding:0 16px;">
+                    <i data-lucide="filter" style="width:14px;height:14px;"></i>
                     Filter
                 </button>
-                <a href="<?= BASE_URL ?>admin/audit_logs.php" class="btn btn-outline btn-sm" style="height:38px;padding:0 12px;">Reset</a>
+                <a href="<?= BASE_URL ?>admin/audit_logs.php" class="btn btn-outline btn-sm" style="height:42px;display:inline-flex;align-items:center;padding:0 14px;">Reset</a>
             </div>
         </form>
     </div>
