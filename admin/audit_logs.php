@@ -324,29 +324,43 @@ require_once __DIR__ . '/../includes/header.php';
 
 <!-- 6. Clear All confirmation modal -->
 <div class="modal-overlay" id="clearAllModal">
-    <div class="modal-box">
+    <div class="modal-box" style="border-radius:var(--radius-lg);max-width:500px;">
         <form method="POST">
-            <div class="modal-head">
-                <div style="display:flex;align-items:center;gap:8px;">
-                    <div style="width:32px;height:32px;border-radius:50%;background:#FEF2F2;color:#EF4444;display:flex;align-items:center;justify-content:center;">
-                        <svg class="lucide-icon" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <div class="modal-head" style="padding:18px 22px;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <div style="width:36px;height:36px;border-radius:10px;background:var(--color-danger-bg);color:var(--color-danger);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <i data-lucide="alert-triangle" style="width:18px;height:18px;"></i>
                     </div>
-                    <h3>Clear All Audit Logs</h3>
+                    <div>
+                        <h3 style="margin:0;font-size:16px;font-weight:700;">Purge Audit Log Trail</h3>
+                        <div style="font-size:12px;color:var(--color-text-muted);">Irreversible security log trail destruction</div>
+                    </div>
                 </div>
-                <button type="button" class="modal-close" data-modal-close>&times;</button>
+                <button type="button" class="modal-close" data-modal-close aria-label="Close modal">&times;</button>
             </div>
-            <div class="modal-body">
-                <p style="font-size:13.5px;color:var(--color-text);line-height:1.5;">This permanently purges <strong>every audit log record</strong> in the system (<?= (int) $totalRows ?> total, ignoring current filters). This cannot be undone.</p>
+            <div class="modal-body" style="padding:22px;">
+                <p style="font-size:13px;color:var(--color-text);line-height:1.55;margin:0 0 16px;">
+                    This permanently purges <strong>every audit log record</strong> in the system (<?= (int) $totalRows ?> total, ignoring current filters). This cannot be undone.
+                </p>
                 <?php csrf_field(); ?>
                 <input type="hidden" name="action" value="clear_all">
-                <div class="form-group" style="margin-top:14px;">
-                    <label style="font-size:12px;font-weight:600;">Type <strong style="color:var(--color-danger);">DELETE</strong> to confirm destruction:</label>
-                    <input type="text" id="clearAllLogsConfirmInput" class="form-control" autocomplete="off" placeholder="DELETE">
+                <div class="form-group" style="margin-bottom:0;">
+                    <label class="form-label" for="clearAllLogsConfirmInput">
+                        Type <strong style="color:var(--color-danger);">DELETE</strong> to authorize purge:
+                    </label>
+                    <div class="input-icon-wrap has-left-icon">
+                        <i data-lucide="shield-alert" class="input-icon-left" style="color:var(--color-danger);"></i>
+                        <input type="text" id="clearAllLogsConfirmInput" class="form-control" autocomplete="off" 
+                               placeholder="Type DELETE in uppercase" style="font-family:var(--font-mono);font-weight:700;letter-spacing:0.05em;">
+                    </div>
                 </div>
             </div>
-            <div class="modal-foot">
+            <div class="modal-foot" style="padding:16px 22px;background:var(--color-surface-subtle);border-top:1px solid var(--color-border);border-bottom-left-radius:var(--radius-lg);border-bottom-right-radius:var(--radius-lg);">
                 <button type="button" class="btn btn-outline btn-sm" data-modal-close>Cancel</button>
-                <button type="submit" class="btn btn-danger btn-sm" id="clearAllLogsSubmitBtn" disabled>Clear All Audit Logs</button>
+                <button type="submit" class="btn btn-danger btn-sm" id="clearAllLogsSubmitBtn" disabled style="padding:8px 18px;">
+                    <i data-lucide="trash-2" style="width:14px;height:14px;"></i>
+                    Confirm Purge
+                </button>
             </div>
         </form>
     </div>

@@ -281,25 +281,33 @@ require_once __DIR__ . '/../includes/header.php';
 
 <!-- 5. Clear All confirmation modal -->
 <div class="modal-overlay" id="clearAllNotifModal">
-    <div class="modal-box">
+    <div class="modal-box" style="border-radius:var(--radius-lg);max-width:480px;">
         <form method="POST">
-            <div class="modal-head">
-                <div style="display:flex;align-items:center;gap:8px;">
-                    <div style="width:32px;height:32px;border-radius:50%;background:#FEF2F2;color:#EF4444;display:flex;align-items:center;justify-content:center;">
-                        <svg class="lucide-icon" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <div class="modal-head" style="padding:18px 22px;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <div style="width:36px;height:36px;border-radius:10px;background:var(--color-danger-bg);color:var(--color-danger);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <i data-lucide="bell-off" style="width:18px;height:18px;"></i>
                     </div>
-                    <h3>Clear All Notifications</h3>
+                    <div>
+                        <h3 style="margin:0;font-size:16px;font-weight:700;">Clear All Notifications</h3>
+                        <div style="font-size:12px;color:var(--color-text-muted);">Purge personal notification feed</div>
+                    </div>
                 </div>
-                <button type="button" class="modal-close" data-modal-close>&times;</button>
+                <button type="button" class="modal-close" data-modal-close aria-label="Close modal">&times;</button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body" style="padding:22px;">
                 <?php csrf_field(); ?>
                 <input type="hidden" name="action" value="clear_all">
-                <p style="font-size:13.5px;color:var(--color-text);line-height:1.5;">This will permanently clear <strong>all of your notifications</strong> (both read and unread). This action cannot be undone.</p>
+                <p style="font-size:13px;color:var(--color-text);line-height:1.55;margin:0;">
+                    This will permanently clear <strong>all of your notifications</strong> (both read and unread). New notifications will continue to arrive as applications and reviews progress. This action cannot be undone.
+                </p>
             </div>
-            <div class="modal-foot">
+            <div class="modal-foot" style="padding:16px 22px;background:var(--color-surface-subtle);border-top:1px solid var(--color-border);border-bottom-left-radius:var(--radius-lg);border-bottom-right-radius:var(--radius-lg);">
                 <button type="button" class="btn btn-outline btn-sm" data-modal-close>Cancel</button>
-                <button type="submit" class="btn btn-danger btn-sm">Clear All Notifications</button>
+                <button type="submit" class="btn btn-danger btn-sm" style="padding:8px 18px;">
+                    <i data-lucide="trash-2" style="width:14px;height:14px;"></i>
+                    Clear All Notifications
+                </button>
             </div>
         </form>
     </div>

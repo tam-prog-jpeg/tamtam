@@ -660,12 +660,21 @@ a:hover {
     padding: 8px 12px;
     font-size: 13px;
     box-shadow: var(--shadow-xs);
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.search-input-pill:hover {
+    border-color: #D1D5DB;
+}
+.search-input-pill:focus-within {
+    border-color: var(--color-primary-600);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
 }
 .search-input-pill input {
     border: none;
     outline: none;
     background: transparent;
     font-size: 13px;
+    font-family: var(--font-body);
     color: var(--color-text);
     width: 140px;
 }
@@ -673,6 +682,7 @@ a:hover {
     border: none;
     background: transparent;
     font-size: 12.5px;
+    font-family: var(--font-body);
     color: var(--color-text-muted);
     outline: none;
     cursor: pointer;
@@ -693,12 +703,21 @@ a:hover {
     color: var(--color-text);
     box-shadow: var(--shadow-xs);
     cursor: pointer;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.date-pill-dropdown:hover {
+    border-color: #D1D5DB;
+}
+.date-pill-dropdown:focus-within {
+    border-color: var(--color-primary-600);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
 }
 .date-pill-dropdown select {
     border: none;
     outline: none;
     background: transparent;
     font-size: 13px;
+    font-family: var(--font-body);
     font-weight: 500;
     color: var(--color-text);
     cursor: pointer;
@@ -826,12 +845,21 @@ a:hover {
     font-size: 12.5px;
     font-weight: 500;
     color: var(--color-text-muted);
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.card-select-pill:hover {
+    border-color: #D1D5DB;
+}
+.card-select-pill:focus-within {
+    border-color: var(--color-primary-600);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
 }
 .card-select-pill select {
     border: none;
     background: transparent;
     outline: none;
     font-size: 12.5px;
+    font-family: var(--font-body);
     color: var(--color-text);
     cursor: pointer;
 }
@@ -1536,10 +1564,26 @@ select.form-control:disabled {
     grid-template-columns: 1fr 1fr 1fr;
     gap: 16px;
 }
+@media (max-width: 992px) {
+    .filter-grid-form,
+    form[style*="grid-template-columns"] {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) !important;
+    }
+}
 @media (max-width: 768px) {
     .form-row,
     .form-row-3 {
         grid-template-columns: 1fr;
+    }
+}
+@media (max-width: 640px) {
+    .filter-grid-form,
+    form[style*="grid-template-columns"] {
+        grid-template-columns: 1fr !important;
+    }
+    .modal-box {
+        width: min(560px, 94vw) !important;
+        margin: 12px;
     }
 }
 
@@ -2431,6 +2475,17 @@ select.form-control:disabled {
     background: #111827;
     border-color: #1F2937;
     color: #F9FAFB;
+}
+[data-theme="dark"] .search-input-pill:hover,
+[data-theme="dark"] .date-pill-dropdown:hover,
+[data-theme="dark"] .card-select-pill:hover {
+    border-color: #374151;
+}
+[data-theme="dark"] .search-input-pill:focus-within,
+[data-theme="dark"] .date-pill-dropdown:focus-within,
+[data-theme="dark"] .card-select-pill:focus-within {
+    border-color: #3B82F6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.22);
 }
 [data-theme="dark"] .btn-outline:hover {
     background: #1F2937;

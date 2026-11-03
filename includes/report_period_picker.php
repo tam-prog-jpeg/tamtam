@@ -17,56 +17,65 @@
 $pickerYear  = (int) date('Y');
 $pickerYears = range($pickerYear, $pickerYear - 5);
 ?>
-<div class="card" style="margin-bottom:18px;">
-    <div class="card-header"><h3>Report Period</h3></div>
-    <div class="card-body">
-        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
-            <span style="font-size:12px;color:var(--color-text-muted);align-self:center;margin-right:4px;">Quick presets:</span>
-            <button type="button" class="btn btn-outline btn-sm" data-preset="this_month">This Month</button>
-            <button type="button" class="btn btn-outline btn-sm" data-preset="last_month">Last Month</button>
-            <button type="button" class="btn btn-outline btn-sm" data-preset="this_quarter">This Quarter</button>
-            <button type="button" class="btn btn-outline btn-sm" data-preset="last_quarter">Last Quarter</button>
-            <button type="button" class="btn btn-outline btn-sm" data-preset="this_year">This Year</button>
-            <button type="button" class="btn btn-outline btn-sm" data-preset="last_year">Last Year</button>
+<div class="card" style="margin-bottom:18px;border-radius:var(--radius-lg);">
+    <div class="card-header" style="padding:14px 20px;border-bottom:1px solid var(--color-border);display:flex;align-items:center;gap:8px;">
+        <i data-lucide="calendar-range" style="width:16px;height:16px;color:var(--color-primary-600);"></i>
+        <h3 style="margin:0;font-size:15px;font-weight:700;">Institutional Reporting Timeframe</h3>
+    </div>
+    <div class="card-body" style="padding:18px 20px;">
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:16px;">
+            <span style="font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;color:var(--color-text-muted);margin-right:4px;">Quick presets:</span>
+            <button type="button" class="btn btn-outline btn-xs" style="padding:4px 10px;font-size:12px;border-radius:var(--radius-full);" data-preset="this_month">This Month</button>
+            <button type="button" class="btn btn-outline btn-xs" style="padding:4px 10px;font-size:12px;border-radius:var(--radius-full);" data-preset="last_month">Last Month</button>
+            <button type="button" class="btn btn-outline btn-xs" style="padding:4px 10px;font-size:12px;border-radius:var(--radius-full);" data-preset="this_quarter">This Quarter</button>
+            <button type="button" class="btn btn-outline btn-xs" style="padding:4px 10px;font-size:12px;border-radius:var(--radius-full);" data-preset="last_quarter">Last Quarter</button>
+            <button type="button" class="btn btn-outline btn-xs" style="padding:4px 10px;font-size:12px;border-radius:var(--radius-full);" data-preset="this_year">This Year</button>
+            <button type="button" class="btn btn-outline btn-xs" style="padding:4px 10px;font-size:12px;border-radius:var(--radius-full);" data-preset="last_year">Last Year</button>
         </div>
 
         <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:end;">
-            <div class="form-group" style="margin-bottom:0;">
-                <label>Report Type</label>
-                <select id="rpType" class="form-control">
+            <div class="form-group" style="margin-bottom:0;min-width:140px;">
+                <label class="form-label-eyebrow">Report Type</label>
+                <select id="rpType" class="form-control form-select">
                     <option value="monthly">Monthly</option>
                     <option value="quarterly">Quarterly</option>
                     <option value="annual">Annual</option>
                 </select>
             </div>
-            <div class="form-group" style="margin-bottom:0;">
-                <label>Year</label>
-                <select id="rpYear" class="form-control">
+            <div class="form-group" style="margin-bottom:0;min-width:110px;">
+                <label class="form-label-eyebrow">Fiscal Year</label>
+                <select id="rpYear" class="form-control form-select">
                     <?php foreach ($pickerYears as $y): ?>
                         <option value="<?= $y ?>"><?= $y ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
-            <div class="form-group" style="margin-bottom:0;" id="rpMonthWrap">
-                <label>Month</label>
-                <select id="rpMonth" class="form-control">
+            <div class="form-group" style="margin-bottom:0;min-width:140px;" id="rpMonthWrap">
+                <label class="form-label-eyebrow">Calendar Month</label>
+                <select id="rpMonth" class="form-control form-select">
                     <?php foreach (['January','February','March','April','May','June','July','August','September','October','November','December'] as $i => $mName): ?>
                         <option value="<?= $i ?>" <?= $i === (int) date('n') - 1 ? 'selected' : '' ?>><?= $mName ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
-            <div class="form-group" style="margin-bottom:0;display:none;" id="rpQuarterWrap">
-                <label>Quarter</label>
-                <select id="rpQuarter" class="form-control">
+            <div class="form-group" style="margin-bottom:0;min-width:140px;display:none;" id="rpQuarterWrap">
+                <label class="form-label-eyebrow">Fiscal Quarter</label>
+                <select id="rpQuarter" class="form-control form-select">
                     <option value="0">Q1 (Jan–Mar)</option>
                     <option value="1">Q2 (Apr–Jun)</option>
                     <option value="2">Q3 (Jul–Sep)</option>
                     <option value="3">Q4 (Oct–Dec)</option>
                 </select>
             </div>
-            <button type="button" class="btn btn-primary btn-sm" id="rpGenerate">Generate Report</button>
+            <button type="button" class="btn btn-primary btn-sm" id="rpGenerate" style="height:42px;padding:0 18px;display:inline-flex;align-items:center;gap:6px;">
+                <i data-lucide="play" style="width:13px;height:13px;"></i>
+                Generate Scope
+            </button>
         </div>
-        <div class="form-hint" style="margin-top:10px;">This fills in the From/To dates below. The Excel (CSV) and Print/PDF exports will use the same period.</div>
+        <div class="form-hint" style="margin-top:12px;">
+            <i data-lucide="info"></i>
+            <span>Synchronizes with the filter parameters below. CSV and Printable PDF documents automatically inherit this timeframe.</span>
+        </div>
     </div>
 </div>
 
