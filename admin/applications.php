@@ -171,12 +171,12 @@ require_once __DIR__ . '/../includes/header.php';
         <p>Monitor, review, and filter institutional IP filings across all categories and university colleges.</p>
     </div>
     <div class="sub-header-actions">
-        <a href="<?= BASE_URL ?>admin/export_csv.php<?= $whereSql ? ('?' . http_build_query($_GET)) : '' ?>" class="btn btn-outline btn-sm">
-            <svg class="lucide-icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <a href="<?= BASE_URL ?>admin/export_csv.php<?= $whereSql ? ('?' . http_build_query($_GET)) : '' ?>" class="btn btn-outline btn-sm" title="Export applications to CSV">
+            <i data-lucide="download" style="width:15px;height:15px;"></i>
             Export CSV
         </a>
-        <button type="button" class="btn btn-danger btn-sm" data-modal-target="#clearAllModal">
-            <svg class="lucide-icon" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+        <button type="button" class="btn btn-danger btn-sm" data-modal-target="#clearAllModal" title="Purge all applications">
+            <i data-lucide="trash-2" style="width:15px;height:15px;"></i>
             Clear All
         </button>
     </div>
@@ -186,203 +186,284 @@ require_once __DIR__ . '/../includes/header.php';
 <div class="kpi-grid" style="margin-bottom:20px;">
     <!-- Total Filings -->
     <div class="kpi-card">
-        <div class="kpi-top">
-            <span class="kpi-label">Total Submissions</span>
-            <span class="kpi-info-tip" title="All-time registered intellectual property applications">i</span>
+        <div class="kpi-card-header">
+            <span>Total Submissions</span>
+            <span class="info-icon" title="All-time registered intellectual property applications">
+                <i data-lucide="info" style="width:14px;height:14px;"></i>
+            </span>
         </div>
-        <div class="kpi-middle">
-            <div class="kpi-value"><?= number_format((int)$kpiStats['total_all']) ?></div>
-            <div class="kpi-spark">
-                <svg class="sparkline-svg" viewBox="0 0 80 24" preserveAspectRatio="none">
-                    <defs>
-                        <linearGradient id="grad-blue-app" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stop-color="#2563EB" stop-opacity="0.3"/>
-                            <stop offset="100%" stop-color="#2563EB" stop-opacity="0.0"/>
-                        </linearGradient>
-                    </defs>
-                    <path d="M0 18 Q 20 8, 40 14 T 80 6 L 80 24 L 0 24 Z" fill="url(#grad-blue-app)"/>
-                    <path d="M0 18 Q 20 8, 40 14 T 80 6" fill="none" stroke="#2563EB" stroke-width="2"/>
-                </svg>
-            </div>
+        <div class="kpi-card-main">
+            <div class="kpi-card-value tabular"><?= number_format((int)$kpiStats['total_all']) ?></div>
+            <svg class="kpi-sparkline" viewBox="0 0 100 40" fill="none">
+                <defs>
+                    <linearGradient id="gradBlueApp" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#2563EB" stop-opacity="0.25"/>
+                        <stop offset="100%" stop-color="#2563EB" stop-opacity="0.0"/>
+                    </linearGradient>
+                </defs>
+                <path d="M0,32 Q25,28 45,18 T75,12 T100,6 L100,40 L0,40 Z" fill="url(#gradBlueApp)"/>
+                <path d="M0,32 Q25,28 45,18 T75,12 T100,6" stroke="#2563EB" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
         </div>
-        <div class="kpi-bottom">
-            <span class="kpi-trend trend-neutral">Master archive count</span>
+        <div class="kpi-card-footer">
+            <i data-lucide="archive" style="width:13px;height:13px;color:var(--color-primary-600);"></i>
+            <span>Master archive count</span>
         </div>
     </div>
 
     <!-- Pending Review -->
     <div class="kpi-card">
-        <div class="kpi-top">
-            <span class="kpi-label">Awaiting Review</span>
-            <span class="kpi-info-tip" title="Applications awaiting assignment or staff evaluation">i</span>
+        <div class="kpi-card-header">
+            <span>Awaiting Review</span>
+            <span class="info-icon" title="Applications awaiting assignment or staff evaluation">
+                <i data-lucide="info" style="width:14px;height:14px;"></i>
+            </span>
         </div>
-        <div class="kpi-middle">
-            <div class="kpi-value" style="color:var(--color-warning);"><?= number_format((int)$kpiStats['total_pending']) ?></div>
-            <div class="kpi-spark">
-                <svg class="sparkline-svg" viewBox="0 0 80 24" preserveAspectRatio="none">
-                    <defs>
-                        <linearGradient id="grad-yellow-app" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stop-color="#F59E0B" stop-opacity="0.3"/>
-                            <stop offset="100%" stop-color="#F59E0B" stop-opacity="0.0"/>
-                        </linearGradient>
-                    </defs>
-                    <path d="M0 20 Q 25 12, 50 16 T 80 4 L 80 24 L 0 24 Z" fill="url(#grad-yellow-app)"/>
-                    <path d="M0 20 Q 25 12, 50 16 T 80 4" fill="none" stroke="#F59E0B" stroke-width="2"/>
-                </svg>
-            </div>
+        <div class="kpi-card-main">
+            <div class="kpi-card-value tabular" style="color:var(--color-warning);"><?= number_format((int)$kpiStats['total_pending']) ?></div>
+            <svg class="kpi-sparkline" viewBox="0 0 100 40" fill="none">
+                <defs>
+                    <linearGradient id="gradYellowApp" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#F59E0B" stop-opacity="0.25"/>
+                        <stop offset="100%" stop-color="#F59E0B" stop-opacity="0.0"/>
+                    </linearGradient>
+                </defs>
+                <path d="M0,28 Q25,18 50,22 T80,8 T100,4 L100,40 L0,40 Z" fill="url(#gradYellowApp)"/>
+                <path d="M0,28 Q25,18 50,22 T80,8 T100,4" stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
         </div>
-        <div class="kpi-bottom">
-            <span class="kpi-trend trend-warning">Requires staff action</span>
+        <div class="kpi-card-footer">
+            <i data-lucide="alert-circle" style="width:13px;height:13px;color:var(--color-warning);"></i>
+            <span>Requires office action</span>
         </div>
     </div>
 
     <!-- Under Review & Evaluated -->
     <div class="kpi-card">
-        <div class="kpi-top">
-            <span class="kpi-label">In Assessment</span>
-            <span class="kpi-info-tip" title="Applications assigned and under evaluation">i</span>
+        <div class="kpi-card-header">
+            <span>In Assessment</span>
+            <span class="info-icon" title="Applications assigned and under evaluation">
+                <i data-lucide="info" style="width:14px;height:14px;"></i>
+            </span>
         </div>
-        <div class="kpi-middle">
-            <div class="kpi-value" style="color:var(--color-primary-600);"><?= number_format((int)$kpiStats['total_review']) ?></div>
-            <div class="kpi-spark">
-                <svg class="sparkline-svg" viewBox="0 0 80 24" preserveAspectRatio="none">
-                    <defs>
-                        <linearGradient id="grad-purple-app" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stop-color="#8B5CF6" stop-opacity="0.3"/>
-                            <stop offset="100%" stop-color="#8B5CF6" stop-opacity="0.0"/>
-                        </linearGradient>
-                    </defs>
-                    <path d="M0 16 Q 25 6, 50 12 T 80 8 L 80 24 L 0 24 Z" fill="url(#grad-purple-app)"/>
-                    <path d="M0 16 Q 25 6, 50 12 T 80 8" fill="none" stroke="#8B5CF6" stroke-width="2"/>
-                </svg>
-            </div>
+        <div class="kpi-card-main">
+            <div class="kpi-card-value tabular" style="color:var(--color-primary-600);"><?= number_format((int)$kpiStats['total_review']) ?></div>
+            <svg class="kpi-sparkline" viewBox="0 0 100 40" fill="none">
+                <defs>
+                    <linearGradient id="gradPurpleApp" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#8B5CF6" stop-opacity="0.25"/>
+                        <stop offset="100%" stop-color="#8B5CF6" stop-opacity="0.0"/>
+                    </linearGradient>
+                </defs>
+                <path d="M0,22 Q25,10 50,18 T80,12 T100,6 L100,40 L0,40 Z" fill="url(#gradPurpleApp)"/>
+                <path d="M0,22 Q25,10 50,18 T80,12 T100,6" stroke="#8B5CF6" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
         </div>
-        <div class="kpi-bottom">
-            <span class="kpi-trend trend-neutral">Assigned & active</span>
+        <div class="kpi-card-footer">
+            <i data-lucide="clock" style="width:13px;height:13px;color:var(--color-primary-600);"></i>
+            <span>Assigned &amp; actively reviewed</span>
         </div>
     </div>
 
     <!-- Approved / Registered -->
     <div class="kpi-card">
-        <div class="kpi-top">
-            <span class="kpi-label">Granted / Approved</span>
-            <span class="kpi-info-tip" title="Officially approved or registered applications">i</span>
+        <div class="kpi-card-header">
+            <span>Granted / Approved</span>
+            <span class="info-icon" title="Officially approved or registered applications">
+                <i data-lucide="info" style="width:14px;height:14px;"></i>
+            </span>
         </div>
-        <div class="kpi-middle">
-            <div class="kpi-value" style="color:var(--color-success);"><?= number_format((int)$kpiStats['total_approved']) ?></div>
-            <div class="kpi-spark">
-                <svg class="sparkline-svg" viewBox="0 0 80 24" preserveAspectRatio="none">
-                    <defs>
-                        <linearGradient id="grad-green-app" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stop-color="#10B981" stop-opacity="0.3"/>
-                            <stop offset="100%" stop-color="#10B981" stop-opacity="0.0"/>
-                        </linearGradient>
-                    </defs>
-                    <path d="M0 22 Q 30 18, 55 10 T 80 2 L 80 24 L 0 24 Z" fill="url(#grad-green-app)"/>
-                    <path d="M0 22 Q 30 18, 55 10 T 80 2" fill="none" stroke="#10B981" stroke-width="2"/>
-                </svg>
-            </div>
+        <div class="kpi-card-main">
+            <div class="kpi-card-value tabular" style="color:var(--color-success);"><?= number_format((int)$kpiStats['total_approved']) ?></div>
+            <svg class="kpi-sparkline" viewBox="0 0 100 40" fill="none">
+                <defs>
+                    <linearGradient id="gradGreenApp" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#10B981" stop-opacity="0.25"/>
+                        <stop offset="100%" stop-color="#10B981" stop-opacity="0.0"/>
+                    </linearGradient>
+                </defs>
+                <path d="M0,34 Q25,30 45,20 T75,12 T100,4 L100,40 L0,40 Z" fill="url(#gradGreenApp)"/>
+                <path d="M0,34 Q25,30 45,20 T75,12 T100,4" stroke="#10B981" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
         </div>
-        <div class="kpi-bottom">
-            <span class="kpi-trend trend-up">Successful registrations</span>
+        <div class="kpi-card-footer">
+            <i data-lucide="check-check" style="width:13px;height:13px;color:var(--color-success);"></i>
+            <span>Registered intellectual property</span>
         </div>
     </div>
 </div>
 
 <!-- 3. Status Category Filter Tabs -->
-<div class="category-tabs" style="margin-bottom:16px;">
-    <a href="<?= qs(['status' => '', 'page' => 1]) ?>" class="tab-pill <?= empty($status) ? 'active' : '' ?>">
-        All Statuses
-        <span class="tab-count"><?= (int)$kpiStats['total_all'] ?></span>
+<div class="category-pill-tabs" style="margin-bottom:16px;overflow-x:auto;">
+    <a href="<?= qs(['status' => '', 'page' => 1]) ?>" class="category-pill <?= empty($status) ? 'active' : '' ?>">
+        <span>All Statuses</span>
+        <span class="badge badge-secondary" style="font-size:10.5px;padding:1px 6px;"><?= (int)$kpiStats['total_all'] ?></span>
     </a>
-    <a href="<?= qs(['status' => 'pending', 'page' => 1]) ?>" class="tab-pill <?= $status === 'pending' ? 'active' : '' ?>">
-        Pending
-        <span class="tab-count"><?= (int)$kpiStats['total_pending'] ?></span>
+    <a href="<?= qs(['status' => 'pending', 'page' => 1]) ?>" class="category-pill <?= $status === 'pending' ? 'active' : '' ?>">
+        <span>Pending</span>
+        <span class="badge badge-warning" style="font-size:10.5px;padding:1px 6px;"><?= (int)$kpiStats['total_pending'] ?></span>
     </a>
-    <a href="<?= qs(['status' => 'under_review', 'page' => 1]) ?>" class="tab-pill <?= $status === 'under_review' ? 'active' : '' ?>">
-        Under Review
+    <a href="<?= qs(['status' => 'under_review', 'page' => 1]) ?>" class="category-pill <?= $status === 'under_review' ? 'active' : '' ?>">
+        <span>Under Review</span>
     </a>
-    <a href="<?= qs(['status' => 'evaluated', 'page' => 1]) ?>" class="tab-pill <?= $status === 'evaluated' ? 'active' : '' ?>">
-        Evaluated
+    <a href="<?= qs(['status' => 'evaluated', 'page' => 1]) ?>" class="category-pill <?= $status === 'evaluated' ? 'active' : '' ?>">
+        <span>Evaluated</span>
     </a>
-    <a href="<?= qs(['status' => 'approved', 'page' => 1]) ?>" class="tab-pill <?= $status === 'approved' ? 'active' : '' ?>">
-        Approved
-        <span class="tab-count"><?= (int)$kpiStats['total_approved'] ?></span>
+    <a href="<?= qs(['status' => 'approved', 'page' => 1]) ?>" class="category-pill <?= $status === 'approved' ? 'active' : '' ?>">
+        <span>Approved</span>
+        <span class="badge badge-success" style="font-size:10.5px;padding:1px 6px;"><?= (int)$kpiStats['total_approved'] ?></span>
     </a>
-    <a href="<?= qs(['status' => 'rejected', 'page' => 1]) ?>" class="tab-pill <?= $status === 'rejected' ? 'active' : '' ?>">
-        Rejected
+    <a href="<?= qs(['status' => 'rejected', 'page' => 1]) ?>" class="category-pill <?= $status === 'rejected' ? 'active' : '' ?>">
+        <span>Rejected</span>
+        <span class="badge badge-danger" style="font-size:10.5px;padding:1px 6px;"><?= (int)$kpiStats['total_rejected'] ?></span>
     </a>
 </div>
 
 <!-- 4. Advanced Filter Bar Card -->
 <div class="card" style="margin-bottom:20px;border-radius:var(--radius-lg);">
-    <div class="card-body" style="padding:16px 20px;">
-        <form method="GET" style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1.2fr auto;gap:12px;align-items:end;">
-            <div class="form-group" style="margin-bottom:0;">
-                <label class="form-label-eyebrow">Search Portfolio</label>
-                <div class="input-icon-wrap has-left-icon">
-                    <i data-lucide="search" class="input-icon-left"></i>
-                    <input type="text" name="q" class="form-control" placeholder="Tracking code, title, applicant…" value="<?= clean($search) ?>">
-                </div>
-            </div>
-
+    <div class="card-body" style="padding:18px 20px;">
+        <form method="GET" action="<?= BASE_URL ?>admin/applications.php">
             <!-- Keep current status tab if selected -->
             <?php if (!empty($status)): ?>
                 <input type="hidden" name="status" value="<?= clean($status) ?>">
             <?php endif; ?>
 
-            <div class="form-group" style="margin-bottom:0;">
-                <label class="form-label-eyebrow">IP Type</label>
-                <select name="type_id" class="form-control form-select">
-                    <option value="0">All IP Types</option>
-                    <?php mysqli_data_seek($types_lookup, 0); while ($t = mysqli_fetch_assoc($types_lookup)): ?>
-                        <option value="<?= $t['type_id'] ?>" <?= $typeId === (int)$t['type_id'] ? 'selected' : '' ?>><?= clean($t['type_name']) ?></option>
-                    <?php endwhile; ?>
-                </select>
-            </div>
+            <div class="filter-controls-grid">
+                <!-- Search -->
+                <div class="form-group" style="margin-bottom:0;grid-column:span 4;">
+                    <label class="form-label-eyebrow">Search Portfolio</label>
+                    <div class="input-icon-wrap has-left-icon">
+                        <i data-lucide="search" class="input-icon-left"></i>
+                        <input type="text" name="q" class="form-control" placeholder="Tracking code, title, applicant…" value="<?= clean($search) ?>">
+                    </div>
+                </div>
 
-            <div class="form-group" style="margin-bottom:0;">
-                <label class="form-label-eyebrow">College</label>
-                <select name="college_id" id="filterCollege" class="form-control form-select">
-                    <option value="0">All Colleges</option>
-                    <?php mysqli_data_seek($colleges_lookup, 0); while ($c = mysqli_fetch_assoc($colleges_lookup)): ?>
-                        <option value="<?= $c['college_id'] ?>" <?= $collegeId === (int)$c['college_id'] ? 'selected' : '' ?>><?= clean($c['college_name']) ?></option>
-                    <?php endwhile; ?>
-                </select>
-            </div>
+                <!-- IP Type -->
+                <div class="form-group" style="margin-bottom:0;grid-column:span 2;">
+                    <label class="form-label-eyebrow">IP Type</label>
+                    <select name="type_id" class="form-control form-select">
+                        <option value="0">All IP Types</option>
+                        <?php mysqli_data_seek($types_lookup, 0); while ($t = mysqli_fetch_assoc($types_lookup)): ?>
+                            <option value="<?= $t['type_id'] ?>" <?= $typeId === (int)$t['type_id'] ? 'selected' : '' ?>><?= clean($t['type_name']) ?></option>
+                        <?php endwhile; ?>
+                    </select>
+                </div>
 
-            <div class="form-group" style="margin-bottom:0;">
-                <label class="form-label-eyebrow">Department</label>
-                <select name="department_id" id="filterDept" class="form-control form-select">
-                    <option value="0">All Departments</option>
-                    <?php foreach ($deptList as $d): ?>
-                        <option value="<?= $d['department_id'] ?>" data-college="<?= $d['college_id'] ?>" <?= $deptId === (int)$d['department_id'] ? 'selected' : '' ?>><?= clean($d['department_name']) ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
+                <!-- College -->
+                <div class="form-group" style="margin-bottom:0;grid-column:span 3;">
+                    <label class="form-label-eyebrow">College</label>
+                    <select name="college_id" id="filterCollege" class="form-control form-select">
+                        <option value="0">All Colleges</option>
+                        <?php mysqli_data_seek($colleges_lookup, 0); while ($c = mysqli_fetch_assoc($colleges_lookup)): ?>
+                            <option value="<?= $c['college_id'] ?>" <?= $collegeId === (int)$c['college_id'] ? 'selected' : '' ?>><?= clean($c['college_name']) ?></option>
+                        <?php endwhile; ?>
+                    </select>
+                </div>
 
-            <div class="form-group" style="margin-bottom:0;">
-                <label class="form-label-eyebrow">Filing Date Range</label>
-                <div style="display:flex;gap:6px;align-items:center;">
-                    <input type="date" name="date_from" class="form-control" style="font-size:12px;padding:6px 8px;height:42px;" value="<?= clean($dateFrom) ?>" title="From">
-                    <span style="color:var(--color-text-subtle);">&ndash;</span>
-                    <input type="date" name="date_to" class="form-control" style="font-size:12px;padding:6px 8px;height:42px;" value="<?= clean($dateTo) ?>" title="To">
+                <!-- Department -->
+                <div class="form-group" style="margin-bottom:0;grid-column:span 3;">
+                    <label class="form-label-eyebrow">Department</label>
+                    <select name="department_id" id="filterDept" class="form-control form-select">
+                        <option value="0">All Departments</option>
+                        <?php foreach ($deptList as $d): ?>
+                            <option value="<?= $d['department_id'] ?>" data-college="<?= $d['college_id'] ?>" <?= $deptId === (int)$d['department_id'] ? 'selected' : '' ?>><?= clean($d['department_name']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <!-- Date Range -->
+                <div class="form-group" style="margin-bottom:0;grid-column:span 5;">
+                    <label class="form-label-eyebrow">Filing Date Range</label>
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        <div class="input-icon-wrap has-left-icon" style="flex:1;">
+                            <i data-lucide="calendar" class="input-icon-left"></i>
+                            <input type="date" name="date_from" class="form-control" value="<?= clean($dateFrom) ?>" title="Start Date">
+                        </div>
+                        <span style="color:var(--color-text-subtle);font-weight:600;">&ndash;</span>
+                        <div class="input-icon-wrap has-left-icon" style="flex:1;">
+                            <i data-lucide="calendar" class="input-icon-left"></i>
+                            <input type="date" name="date_to" class="form-control" value="<?= clean($dateTo) ?>" title="End Date">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="form-group filter-actions-group" style="margin-bottom:0;grid-column:span 7;display:flex;justify-content:flex-end;align-items:flex-end;gap:8px;">
+                    <button type="submit" class="btn btn-primary" style="height:42px;padding:0 20px;">
+                        <i data-lucide="filter" style="width:15px;height:15px;"></i>
+                        Filter
+                    </button>
+                    <?php if ($search !== '' || $typeId > 0 || $collegeId > 0 || $deptId > 0 || $dateFrom !== '' || $dateTo !== '' || !empty($status)): ?>
+                        <a href="<?= BASE_URL ?>admin/applications.php" class="btn btn-outline" style="height:42px;padding:0 16px;display:inline-flex;align-items:center;gap:6px;" title="Reset filters">
+                            <i data-lucide="rotate-ccw" style="width:14px;height:14px;"></i>
+                            Reset
+                        </a>
+                    <?php endif; ?>
                 </div>
             </div>
 
-            <div style="display:flex;gap:6px;">
-                <button type="submit" class="btn btn-primary btn-sm" style="height:42px;padding:0 16px;">
-                    <i data-lucide="filter" style="width:14px;height:14px;"></i>
-                    Filter
-                </button>
-                <a href="<?= BASE_URL ?>admin/applications.php" class="btn btn-outline btn-sm" style="height:42px;display:inline-flex;align-items:center;padding:0 14px;" title="Reset filters">
-                    Reset
-                </a>
-            </div>
-        </form>
-    </div>
-</div>
-            </div>
+            <!-- Active Filter Badges Bar -->
+            <?php 
+            $hasActiveFilters = ($search !== '' || $typeId > 0 || $collegeId > 0 || $deptId > 0 || $dateFrom !== '' || $dateTo !== '');
+            if ($hasActiveFilters): 
+            ?>
+                <div class="active-filter-bar">
+                    <span class="active-filter-label">
+                        <i data-lucide="sliders-horizontal" style="width:13px;height:13px;"></i>
+                        Active Filters:
+                    </span>
+                    <?php if ($search !== ''): ?>
+                        <span class="filter-chip">
+                            Keyword: "<?= clean($search) ?>"
+                            <a href="<?= qs(['q' => '', 'page' => 1]) ?>" class="filter-chip-remove" title="Remove keyword filter">&times;</a>
+                        </span>
+                    <?php endif; ?>
+                    <?php if ($typeId > 0): 
+                        mysqli_data_seek($types_lookup, 0);
+                        $typeName = 'Selected Type';
+                        while ($t = mysqli_fetch_assoc($types_lookup)) {
+                            if ((int)$t['type_id'] === $typeId) { $typeName = $t['type_name']; break; }
+                        }
+                    ?>
+                        <span class="filter-chip">
+                            Type: <?= clean($typeName) ?>
+                            <a href="<?= qs(['type_id' => 0, 'page' => 1]) ?>" class="filter-chip-remove" title="Remove type filter">&times;</a>
+                        </span>
+                    <?php endif; ?>
+                    <?php if ($collegeId > 0): 
+                        mysqli_data_seek($colleges_lookup, 0);
+                        $collegeName = 'Selected College';
+                        while ($c = mysqli_fetch_assoc($colleges_lookup)) {
+                            if ((int)$c['college_id'] === $collegeId) { $collegeName = $c['college_name']; break; }
+                        }
+                    ?>
+                        <span class="filter-chip">
+                            College: <?= clean($collegeName) ?>
+                            <a href="<?= qs(['college_id' => 0, 'department_id' => 0, 'page' => 1]) ?>" class="filter-chip-remove" title="Remove college filter">&times;</a>
+                        </span>
+                    <?php endif; ?>
+                    <?php if ($deptId > 0): 
+                        $deptName = 'Selected Dept';
+                        foreach ($deptList as $d) {
+                            if ((int)$d['department_id'] === $deptId) { $deptName = $d['department_name']; break; }
+                        }
+                    ?>
+                        <span class="filter-chip">
+                            Dept: <?= clean($deptName) ?>
+                            <a href="<?= qs(['department_id' => 0, 'page' => 1]) ?>" class="filter-chip-remove" title="Remove department filter">&times;</a>
+                        </span>
+                    <?php endif; ?>
+                    <?php if ($dateFrom !== '' || $dateTo !== ''): ?>
+                        <span class="filter-chip">
+                            Dates: <?= clean($dateFrom ?: 'Any') ?> &ndash; <?= clean($dateTo ?: 'Any') ?>
+                            <a href="<?= qs(['date_from' => '', 'date_to' => '', 'page' => 1]) ?>" class="filter-chip-remove" title="Remove date range filter">&times;</a>
+                        </span>
+                    <?php endif; ?>
+                    <a href="<?= BASE_URL ?>admin/applications.php<?= !empty($status) ? '?status=' . urlencode($status) : '' ?>" class="filter-clear-all">
+                        Clear all
+                    </a>
+                </div>
+            <?php endif; ?>
         </form>
     </div>
 </div>
@@ -402,7 +483,7 @@ require_once __DIR__ . '/../includes/header.php';
         <?php if (mysqli_num_rows($applications) === 0): ?>
             <div class="empty-state">
                 <div class="empty-state-icon">
-                    <svg class="lucide-icon" style="width:32px;height:32px;stroke-width:1.5;" viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    <i data-lucide="file-question" style="width:36px;height:36px;color:var(--color-text-subtle);"></i>
                 </div>
                 <h4>No applications found</h4>
                 <p>No applications match your specified search keywords or active filters.</p>
@@ -426,12 +507,13 @@ require_once __DIR__ . '/../includes/header.php';
                 <?php while ($a = mysqli_fetch_assoc($applications)): ?>
                 <tr>
                     <td>
-                        <a href="<?= BASE_URL ?>admin/application_view.php?id=<?= $a['application_id'] ?>" class="tracking" style="color:var(--color-primary-600);font-weight:600;text-decoration:none;">
-                            <?= clean($a['tracking_code']) ?>
+                        <a href="<?= BASE_URL ?>admin/application_view.php?id=<?= $a['application_id'] ?>" class="tracking-pill" title="View details for <?= clean($a['tracking_code']) ?>">
+                            <i data-lucide="hash" style="width:12px;height:12px;opacity:0.7;"></i>
+                            <span><?= clean($a['tracking_code']) ?></span>
                         </a>
                     </td>
                     <td>
-                        <div style="font-weight:600;color:var(--color-text);max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="<?= clean($a['title']) ?>">
+                        <div style="font-weight:600;color:var(--color-text);max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="<?= clean($a['title']) ?>">
                             <?= clean($a['title']) ?>
                         </div>
                     </td>
@@ -461,7 +543,7 @@ require_once __DIR__ . '/../includes/header.php';
                     <td style="text-align:right;">
                         <div style="display:inline-flex;gap:6px;justify-content:flex-end;align-items:center;">
                             <a class="btn btn-outline btn-sm" href="<?= BASE_URL ?>admin/application_view.php?id=<?= $a['application_id'] ?>" title="View Dossier">
-                                <svg class="lucide-icon" viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                                <i data-lucide="eye" style="width:14px;height:14px;"></i>
                                 View
                             </a>
                             <form method="POST" onsubmit="return confirm('Delete this application and all its documents permanently?');" style="margin:0;display:inline-flex;">
@@ -469,7 +551,7 @@ require_once __DIR__ . '/../includes/header.php';
                                 <input type="hidden" name="action" value="delete">
                                 <input type="hidden" name="application_id" value="<?= $a['application_id'] ?>">
                                 <button type="submit" class="btn btn-outline-danger btn-sm" title="Delete Application">
-                                    <svg class="lucide-icon" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                                    <i data-lucide="trash-2" style="width:14px;height:14px;"></i>
                                     Delete
                                 </button>
                             </form>
