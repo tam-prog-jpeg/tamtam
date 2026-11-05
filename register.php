@@ -17,15 +17,27 @@ if (is_logged_in()) {
 
 $flash = get_flash();
 
-// Load colleges + departments to power the cascading dropdowns.
-$colleges = mysqli_query($conn, "SELECT college_id, college_name FROM colleges ORDER BY college_name");
-$departments = mysqli_query($conn, "SELECT department_id, college_id, department_name FROM departments ORDER BY department_name");
-$departmentsList = [];
-while ($d = mysqli_fetch_assoc($departments)) { $departmentsList[] = $d; }
-
 // Re-populate the form after a failed submission (old input passed via session).
 $old = $_SESSION['old_input'] ?? [];
 unset($_SESSION['old_input']);
+
+$collegeOffices = [
+    'College of Engineering and Technology (CET)',
+    'College of Teacher Education (CTE) / College of Technical Vocational Teacher Education',
+    'School of Business Administration',
+    'College of Arts, Humanities, and Social Sciences (CAHSS)',
+    'College of Information and Computing Sciences (CICS)',
+    'College of Physical Education and Sports (CPES)',
+    'Office of the University President',
+    'Office of the University Registrar',
+    'Office of Student Affairs and Services (OSAS)',
+    'Admission Office',
+    'Public Information Office (PIO)',
+    'Learning Commons Center / ZPPSU Library',
+    'Alumni Affairs Office',
+    'Professional Continuing Education (PCE)',
+    'Innovation Hub / Research and Extension Offices',
+];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -133,34 +145,21 @@ unset($_SESSION['old_input']);
                     <div class="form-group">
                         <label for="applicant_type">Applicant Type</label>
                         <select class="form-control" id="applicant_type" name="applicant_type" required>
-                            <?php foreach (['Student', 'Faculty', 'Staff', 'External'] as $type): ?>
+                            <?php foreach (['Faculty', 'Staff'] as $type): ?>
                                 <option value="<?= $type ?>" <?= ($old['applicant_type'] ?? '') === $type ? 'selected' : '' ?>><?= $type ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
                 </div>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="college_id">College</label>
-                        <select class="form-control" id="college_id" name="college_id">
-                            <option value="">— Not applicable —</option>
-                            <?php while ($c = mysqli_fetch_assoc($colleges)): ?>
-                                <option value="<?= $c['college_id'] ?>" <?= (int)($old['college_id'] ?? 0) === (int)$c['college_id'] ? 'selected' : '' ?>><?= clean($c['college_name']) ?></option>
-                            <?php endwhile; ?>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="department_id">Department</label>
-                        <select class="form-control" id="department_id" name="department_id">
-                            <option value="">— Select college first —</option>
-                        </select>
-                    </div>
-                </div>
-
                 <div class="form-group">
-                    <label for="address">Address</label>
-                    <input class="form-control" type="text" id="address" name="address" value="<?= clean($old['address'] ?? '') ?>">
+                    <label for="college_office">College / Office</label>
+                    <select class="form-control" id="college_office" name="college_office" required>
+                        <option value="">— Select College / Office —</option>
+                        <?php foreach ($collegeOffices as $office): ?>
+                            <option value="<?= clean($office) ?>" <?= ($old['college_office'] ?? '') === $office ? 'selected' : '' ?>><?= clean($office) ?></option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
 
                 <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;height:44px;font-size:14.5px;">
@@ -209,26 +208,6 @@ unset($_SESSION['old_input']);
                 updateThemeIcon();
             });
         }
-
-        // Cascading college -> department dropdown (client-side filter).
-        const ALL_DEPARTMENTS = <?= json_encode($departmentsList) ?>;
-        const collegeSelect = document.getElementById('college_id');
-        const deptSelect = document.getElementById('department_id');
-        const oldDept = <?= json_encode((int)($old['department_id'] ?? 0)) ?>;
-
-        function renderDepartments() {
-            const collegeId = parseInt(collegeSelect.value || 0, 10);
-            deptSelect.innerHTML = '';
-            const matches = ALL_DEPARTMENTS.filter(d => parseInt(d.college_id, 10) === collegeId);
-            if (!collegeId || matches.length === 0) {
-                deptSelect.innerHTML = '<option value="">— Not applicable —</option>';
-                return;
-            }
-            deptSelect.innerHTML = '<option value="">— Select department —</option>' +
-                matches.map(d => `<option value="${d.department_id}" ${parseInt(d.department_id,10)===oldDept ? 'selected' : ''}>${d.department_name}</option>`).join('');
-        }
-        collegeSelect.addEventListener('change', renderDepartments);
-        renderDepartments();
     </script>
 </body>
 </html>

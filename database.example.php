@@ -1,12 +1,11 @@
 <?php
 /**
- * database.php
+ * database.example.php
  * -----------------------------------------------------------------
- * Central MySQLi connection used by every page in the system.
- * Include this file with require_once at the top of any script that
- * needs database access:
- *      require_once __DIR__ . '/database.php';   (from root)
- *      require_once __DIR__ . '/../database.php'; (from a subfolder)
+ * Example database connection configuration.
+ * Copy this file to `database.php` and update with your local
+ * MySQL/MariaDB database credentials:
+ *      cp database.example.php database.php
  * -----------------------------------------------------------------
  */
 
@@ -28,7 +27,7 @@ if (!$conn) {
 mysqli_set_charset($conn, 'utf8mb4');
 
 // ---- Base URL / paths used across the app -------------------------------
-// Adjust BASE_URL if the project folder name changes.
-define('BASE_URL', '/ZPPSU_IPO/');
+// Adjust BASE_URL if your local web folder name is different.
+define('BASE_URL', '/zppsu_ipo/');
 define('UPLOAD_DIR', __DIR__ . '/uploads/');
 define('UPLOAD_URL', BASE_URL . 'uploads/');

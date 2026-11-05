@@ -13,6 +13,9 @@ Desktop.ini
 *.log
 error_log
 
+# Database connection credentials (local config)
+database.php
+
 # Temporary / Scratch files
 scratch/
 *.tmp

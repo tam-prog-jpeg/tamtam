@@ -96,14 +96,14 @@ $flash = get_flash();
 
                 <!-- Username or Email Field -->
                 <div class="form-group">
-                    <label for="username">Username or University Email</label>
+                    <label for="username">Username or Email</label>
                     <div class="auth-input-wrap">
                         <input 
                             class="form-control" 
-                            type="text" 
+                            type="text"     
                             id="username" 
                             name="username" 
-                            placeholder="e.g. username or name@zppsu.edu.ph" 
+                            placeholder="e.g. username or name@gmail.com" 
                             required 
                             autofocus 
                             autocomplete="username"
@@ -172,7 +172,7 @@ $flash = get_flash();
         <div style="margin-top:4px;">
             In compliance with Republic Act No. 8293 (Intellectual Property Code) &amp; RA 10173 (Data Privacy Act).
         </div>
-        <div style="margin-top:4px;">
+        <div style="margin-top:4px;">   
             Technical Support: <a href="mailto:ipo@zppsu.edu.ph">ipo@zppsu.edu.ph</a> · R.T. Lim Boulevard, Zamboanga City
         </div>
     </footer>

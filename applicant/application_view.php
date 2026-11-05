@@ -282,14 +282,34 @@ require_once __DIR__ . '/../includes/header.php';
                         <?php csrf_field(); ?>
                         <input type="hidden" name="action" value="edit_details">
                         <div class="form-group">
-                            <label style="font-weight:600;font-size:13px;">Invention Title</label>
-                            <input type="text" name="title" class="form-control" maxlength="255" value="<?= clean($application['title']) ?>" required style="height:40px;font-size:13.5px;">
+                            <label for="rev_title" class="form-label">
+                                Invention Title <span class="required-mark">*</span>
+                            </label>
+                            <div class="input-icon-wrap has-left-icon">
+                                <i data-lucide="lightbulb" class="input-icon-left"></i>
+                                <input 
+                                    type="text" 
+                                    id="rev_title" 
+                                    name="title" 
+                                    class="form-control" 
+                                    maxlength="255" 
+                                    value="<?= clean($application['title']) ?>" 
+                                    required
+                                >
+                            </div>
                         </div>
                         <div class="form-group">
-                            <label style="font-weight:600;font-size:13px;">Technical Description &amp; Claims</label>
-                            <textarea name="description" class="form-control" rows="5" style="font-size:13.5px;line-height:1.6;"><?= clean($application['description']) ?></textarea>
+                            <label for="rev_description" class="form-label">
+                                Technical Description &amp; Claims
+                            </label>
+                            <textarea 
+                                id="rev_description" 
+                                name="description" 
+                                class="form-control" 
+                                rows="5"
+                            ><?= clean($application['description']) ?></textarea>
                         </div>
-                        <button type="submit" class="btn btn-primary btn-sm">
+                        <button type="submit" class="btn btn-primary btn-sm" style="height:36px;padding:0 18px;">
                             <i data-lucide="check" style="width:14px;height:14px;"></i>
                             Save Details
                         </button>
@@ -407,14 +427,29 @@ require_once __DIR__ . '/../includes/header.php';
                 <form method="POST" enctype="multipart/form-data">
                     <?php csrf_field(); ?>
                     <input type="hidden" name="action" value="upload">
-                    <div class="form-group" style="margin-bottom:12px;">
-                        <label style="font-weight:600;font-size:12.5px;">Upload Additional Document</label>
-                        <input type="file" name="documents[]" class="form-control" multiple accept="<?= clean($appAcceptAttr) ?>" style="font-size:12.5px;padding:6px 12px;height:38px;">
-                        <div class="form-hint" style="font-size:11.5px;color:var(--color-text-muted);margin-top:4px;">
-                            Accepted: <?= clean($appAcceptLabel) ?> · Max <?= (int)$appUploadConfig['max_mb'] ?>MB each.
+                    <div class="form-group">
+                        <div class="form-label-row">
+                            <label for="extra_docs" class="form-label">Upload Additional Document</label>
+                            <span class="optional-badge">Max <?= (int)$appUploadConfig['max_mb'] ?>MB</span>
+                        </div>
+                        <div class="input-icon-wrap has-left-icon">
+                            <i data-lucide="paperclip" class="input-icon-left"></i>
+                            <input 
+                                type="file" 
+                                id="extra_docs" 
+                                name="documents[]" 
+                                class="form-control" 
+                                multiple 
+                                accept="<?= clean($appAcceptAttr) ?>"
+                                style="padding-top:8px;"
+                            >
+                        </div>
+                        <div class="form-hint">
+                            <i data-lucide="info"></i>
+                            <span>Accepted formats: <strong><?= clean($appAcceptLabel) ?></strong>.</span>
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-primary btn-sm">
+                    <button type="submit" class="btn btn-primary btn-sm" style="height:36px;padding:0 18px;">
                         <i data-lucide="upload" style="width:14px;height:14px;"></i>
                         Upload Files
                     </button>
