@@ -204,9 +204,12 @@ mysqli_stmt_execute($docsStmt);
 $documents = mysqli_stmt_get_result($docsStmt);
 
 $histStmt = mysqli_prepare($conn, "
-    SELECT h.*, u.first_name, u.last_name
-    FROM application_status_history h LEFT JOIN users u ON u.user_id = h.changed_by
-    WHERE h.application_id = ? ORDER BY h.changed_at DESC
+    SELECT h.*, u.first_name, u.last_name, r.role_name
+    FROM application_status_history h 
+    LEFT JOIN users u ON u.user_id = h.changed_by
+    LEFT JOIN roles r ON r.role_id = u.role_id
+    WHERE h.application_id = ? 
+    ORDER BY h.changed_at DESC
 ");
 mysqli_stmt_bind_param($histStmt, 'i', $applicationId);
 mysqli_stmt_execute($histStmt);
@@ -231,23 +234,158 @@ require_once __DIR__ . '/../includes/header.php';
                     <?= clean($application['tracking_code']) ?>
                 </span>
                 <span>·</span>
-                <span>Category: <strong><?= clean($application['type_name']) ?></strong></span>
+                <span>Category: <strong><?= get_application_category_label($application) ?></strong></span>
                 <span>·</span>
                 <span>Filed <?= format_date($application['submitted_at'], 'M d, Y · h:i A') ?></span>
             </div>
         </div>
     </div>
     <div class="action-controls-group">
-        <?php if ($application['status'] === 'approved'): ?>
-            <a href="<?= BASE_URL ?>applicant/certificate.php?id=<?= $applicationId ?>" class="btn btn-success btn-sm" target="_blank" title="Download official registration certificate">
-                <i data-lucide="award" style="width:15px;height:15px;"></i>
-                Download Certificate
-            </a>
-        <?php endif; ?>
         <a href="<?= BASE_URL ?>applicant/my_applications.php" class="btn btn-outline btn-sm">
             <i data-lucide="list" style="width:14px;height:14px;"></i>
             My Filings
         </a>
+    </div>
+</div>
+
+<!-- 2. Application Submission Pipeline Stepper -->
+<?php
+    $st = $application['status'];
+    // Status stage mapping:
+    // Stage 1: Intake Screening (pending, or passed if past)
+    // Stage 2: Technical Evaluation (under_review, or passed if evaluated/approved/rejected)
+    // Stage 3: Executive Review (evaluated, or passed if approved/rejected)
+    // Stage 4: Final Determination (approved/rejected)
+    // Special branch: 'returned' means returned during intake or evaluation for revision.
+    $step1Class = 'completed';
+    $step2Class = 'upcoming';
+    $step3Class = 'upcoming';
+    $step4Class = 'upcoming';
+
+    if ($st === 'pending') {
+        $step1Class = 'active';
+    } elseif ($st === 'returned') {
+        $step1Class = 'warning';
+    } elseif ($st === 'under_review') {
+        $step1Class = 'completed';
+        $step2Class = 'active';
+    } elseif ($st === 'evaluated') {
+        $step1Class = 'completed';
+        $step2Class = 'completed';
+        $step3Class = 'active';
+    } elseif ($st === 'approved') {
+        $step1Class = 'completed';
+        $step2Class = 'completed';
+        $step3Class = 'completed';
+        $step4Class = 'success';
+    } elseif ($st === 'rejected') {
+        $step1Class = 'completed';
+        $step2Class = 'completed';
+        $step3Class = 'completed';
+        $step4Class = 'danger';
+    }
+?>
+<div class="pipeline-card" style="margin-bottom:24px;">
+    <div class="pipeline-header">
+        <div>
+            <h3 class="pipeline-title">Application Processing Pipeline</h3>
+            <span class="pipeline-subtitle">Real-time status tracking from initial document intake to final executive determination</span>
+        </div>
+        <div>
+            <span class="badge <?= status_badge_class($st) ?>" style="font-size:12px;padding:6px 12px;">
+                <span class="status-dot"></span>
+                <?= status_label($st) ?>
+            </span>
+        </div>
+    </div>
+    <div class="pipeline-track">
+        <!-- Stage 1 -->
+        <div class="pipeline-step <?= $step1Class ?>">
+            <div class="pipeline-node">
+                <?php if ($st === 'returned'): ?>
+                    <i data-lucide="alert-triangle" style="width:16px;height:16px;"></i>
+                <?php elseif ($step1Class === 'completed'): ?>
+                    <i data-lucide="check" style="width:16px;height:16px;"></i>
+                <?php else: ?>
+                    <i data-lucide="file-check" style="width:16px;height:16px;"></i>
+                <?php endif; ?>
+            </div>
+            <div class="pipeline-step-body">
+                <div class="pipeline-step-title">1. Intake Screening</div>
+                <div class="pipeline-step-desc">
+                    <?= $st === 'returned' ? 'Returned for revision: awaiting applicant resubmission' : ($st === 'pending' ? 'Application received; awaiting staff compliance verification' : 'Initial submission screened and verified') ?>
+                </div>
+            </div>
+        </div>
+
+        <div class="pipeline-connector <?= in_array($step2Class, ['active', 'completed', 'success', 'danger']) ? 'completed' : '' ?>"></div>
+
+        <!-- Stage 2 -->
+        <div class="pipeline-step <?= $step2Class ?>">
+            <div class="pipeline-node">
+                <?php if (in_array($step2Class, ['completed', 'success', 'danger'])): ?>
+                    <i data-lucide="check" style="width:16px;height:16px;"></i>
+                <?php elseif ($step2Class === 'active'): ?>
+                    <i data-lucide="flask-conical" style="width:16px;height:16px;"></i>
+                <?php else: ?>
+                    <span>2</span>
+                <?php endif; ?>
+            </div>
+            <div class="pipeline-step-body">
+                <div class="pipeline-step-title">2. Technical Evaluation</div>
+                <div class="pipeline-step-desc">
+                    <?= $st === 'under_review' ? 'Assigned technical evaluator examining claims and prior art' : ($step2Class === 'upcoming' ? 'Awaiting assignment to certified technical evaluator' : 'Substantive technical examination completed') ?>
+                </div>
+            </div>
+        </div>
+
+        <div class="pipeline-connector <?= in_array($step3Class, ['active', 'completed', 'success', 'danger']) ? 'completed' : '' ?>"></div>
+
+        <!-- Stage 3 -->
+        <div class="pipeline-step <?= $step3Class ?>">
+            <div class="pipeline-node">
+                <?php if (in_array($step3Class, ['completed', 'success', 'danger'])): ?>
+                    <i data-lucide="check" style="width:16px;height:16px;"></i>
+                <?php elseif ($step3Class === 'active'): ?>
+                    <i data-lucide="user-check" style="width:16px;height:16px;"></i>
+                <?php else: ?>
+                    <span>3</span>
+                <?php endif; ?>
+            </div>
+            <div class="pipeline-step-body">
+                <div class="pipeline-step-title">3. Executive Review</div>
+                <div class="pipeline-step-desc">
+                    <?= $st === 'evaluated' ? 'Evaluator recommendation forwarded to IPO Director for final review' : ($step3Class === 'upcoming' ? 'Awaiting evaluation findings and director endorsement' : 'Executive review completed') ?>
+                </div>
+            </div>
+        </div>
+
+        <div class="pipeline-connector <?= in_array($step4Class, ['success', 'danger']) ? 'completed' : '' ?>"></div>
+
+        <!-- Stage 4 -->
+        <div class="pipeline-step <?= $step4Class ?>">
+            <div class="pipeline-node">
+                <?php if ($st === 'approved'): ?>
+                    <i data-lucide="check-circle-2" style="width:16px;height:16px;"></i>
+                <?php elseif ($st === 'rejected'): ?>
+                    <i data-lucide="x-circle" style="width:16px;height:16px;"></i>
+                <?php else: ?>
+                    <span>4</span>
+                <?php endif; ?>
+            </div>
+            <div class="pipeline-step-body">
+                <div class="pipeline-step-title">4. Final Determination</div>
+                <div class="pipeline-step-desc">
+                    <?php if ($st === 'approved'): ?>
+                        Application approved and official IP registration recorded
+                    <?php elseif ($st === 'rejected'): ?>
+                        Application concluded with non-favorable final determination
+                    <?php else: ?>
+                        Official determination and recording upon executive sign-off
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -329,7 +467,7 @@ require_once __DIR__ . '/../includes/header.php';
                         </tr>
                         <tr>
                             <td style="color:var(--color-text-muted);font-size:13px;">IP Category</td>
-                            <td><span class="badge badge-secondary"><?= clean($application['type_name']) ?></span></td>
+                            <td><span class="badge badge-secondary"><?= get_application_category_label($application) ?></span></td>
                         </tr>
                         <tr>
                             <td style="color:var(--color-text-muted);font-size:13px;">Date Submitted</td>
@@ -381,16 +519,25 @@ require_once __DIR__ . '/../includes/header.php';
                     </thead>
                     <tbody>
                         <?php while ($doc = mysqli_fetch_assoc($documents)): ?>
+                        <?php
+                            $fExt = strtolower($doc['file_type']);
+                            $badgeClass = match ($fExt) {
+                                'pdf' => 'badge-file-pdf',
+                                'docx', 'doc' => 'badge-file-docx',
+                                'png', 'jpg', 'jpeg' => 'badge-file-png',
+                                default => 'badge-secondary',
+                            };
+                        ?>
                         <tr>
                             <td>
                                 <strong style="font-size:13px;color:var(--color-text);"><?= clean($doc['file_name']) ?></strong>
                             </td>
-                            <td><span class="badge badge-secondary" style="font-size:11px;"><?= strtoupper(clean($doc['file_type'])) ?></span></td>
+                            <td><span class="badge <?= $badgeClass ?>" style="font-size:11px;font-weight:600;"><?= strtoupper(clean($doc['file_type'])) ?></span></td>
                             <td><span style="font-family:var(--font-mono);font-size:11.5px;color:var(--color-text-muted);">v<?= (int) $doc['version'] ?></span></td>
                             <td class="tabular" style="font-size:12px;color:var(--color-text-muted);"><?= format_date($doc['uploaded_at'], 'M d, Y') ?></td>
                             <td style="text-align:right;">
                                 <div style="display:inline-flex;gap:6px;justify-content:flex-end;">
-                                    <button type="button" class="btn btn-outline btn-sm" onclick="openDocPreview('<?= BASE_URL . clean($doc['file_path']) ?>','<?= clean($doc['file_type']) ?>','<?= clean(addslashes($doc['file_name'])) ?>')" title="Quick Preview">
+                                    <button type="button" class="btn btn-primary btn-sm" onclick="openDocPreview('<?= BASE_URL . clean($doc['file_path']) ?>','<?= clean($doc['file_type']) ?>','<?= clean(addslashes($doc['file_name'])) ?>')" title="Preview Document">
                                         <i data-lucide="eye" style="width:13px;height:13px;"></i>
                                         Preview
                                     </button>
@@ -461,47 +608,52 @@ require_once __DIR__ . '/../includes/header.php';
 
     <!-- Right Column: Status Audit Trail & Official Actions -->
     <div style="display:flex;flex-direction:column;gap:20px;">
-        <!-- Card 3: Certificate Ready (If Approved) -->
-        <?php if ($application['status'] === 'approved'): ?>
-        <div class="card" style="border-radius:var(--radius-lg);border:1px solid var(--color-success);background:rgba(16,185,129,0.04);">
-            <div class="card-body" style="padding:20px;text-align:center;">
-                <div style="width:48px;height:48px;border-radius:50%;background:rgba(16,185,129,0.15);color:var(--color-success);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">
-                    <i data-lucide="award" style="width:24px;height:24px;"></i>
-                </div>
-                <h3 style="margin:0 0 4px;font-size:16px;color:var(--color-text);">Official Registration Granted</h3>
-                <p style="font-size:12.5px;color:var(--color-text-muted);line-height:1.5;margin:0 0 16px;">
-                    This application has received executive approval from the IPO Director. Your official university certificate is available for download.
-                </p>
-                <a href="<?= BASE_URL ?>applicant/certificate.php?id=<?= $applicationId ?>" class="btn btn-success" target="_blank" style="width:100%;justify-content:center;padding:10px;">
-                    <i data-lucide="download" style="width:16px;height:16px;"></i>
-                    Download Official Certificate
-                </a>
-            </div>
-        </div>
-        <?php endif; ?>
-
-        <!-- Card 4: Evaluation Progress Timeline -->
+        <!-- Card: Application Remarks & Examiner Feedback -->
         <div class="card" style="border-radius:var(--radius-lg);">
-            <div class="card-header" style="padding:16px 20px;border-bottom:1px solid var(--color-border);display:flex;align-items:center;gap:8px;">
-                <i data-lucide="git-commit" style="width:16px;height:16px;color:var(--color-primary-600);"></i>
-                <h3 style="margin:0;font-size:15px;">Status History &amp; Remarks</h3>
+            <div class="card-header" style="padding:16px 20px;border-bottom:1px solid var(--color-border);display:flex;align-items:center;justify-content:space-between;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <i data-lucide="message-square-text" style="width:16px;height:16px;color:var(--color-primary-600);"></i>
+                    <h3 style="margin:0;font-size:15px;font-weight:700;">Remarks &amp; Audit Trail</h3>
+                </div>
+                <span class="badge badge-secondary tabular" style="font-size:11px;font-weight:700;"><?= mysqli_num_rows($history) ?> log<?= mysqli_num_rows($history) === 1 ? '' : 's' ?></span>
             </div>
-            <div class="card-body" style="padding:20px;">
+            <div class="card-body" style="padding:18px 20px;">
                 <?php if (mysqli_num_rows($history) === 0): ?>
-                    <p style="color:var(--color-text-muted);font-size:13px;margin:0;">No history recorded yet.</p>
+                    <p style="color:var(--color-text-muted);font-size:13px;margin:0;">No official remarks or stage transitions logged yet.</p>
                 <?php else: ?>
-                    <div style="display:flex;flex-direction:column;gap:18px;">
+                    <div class="remarks-feed">
                         <?php while ($h = mysqli_fetch_assoc($history)): ?>
-                        <div style="border-left:2px solid var(--color-primary-600);padding-left:14px;position:relative;">
-                            <span class="badge <?= status_badge_class($h['status']) ?>" style="font-size:11px;">
-                                <?= status_label($h['status']) ?>
-                            </span>
-                            <div class="tabular" style="font-size:11.5px;color:var(--color-text-muted);margin-top:4px;">
+                        <?php
+                            $roleLower = strtolower($h['role_name'] ?? '');
+                            $isRevision = in_array($h['status'], ['returned'], true);
+                            $isApproved = in_array($h['status'], ['approved'], true);
+                            $author = trim(($h['first_name'] ?? '') . ' ' . ($h['last_name'] ?? ''));
+                            if (!$author) $author = 'IPO Office';
+                        ?>
+                        <div class="remark-card <?= $isRevision ? 'revision-card' : ($isApproved ? 'approval-card' : '') ?>">
+                            <div class="remark-header">
+                                <div class="remark-author-group">
+                                    <span class="remark-author-name"><?= clean($author) ?></span>
+                                    <span class="remark-role-pill <?= in_array($roleLower, ['staff', 'evaluator', 'manager']) ? $roleLower : '' ?>">
+                                        <?= clean($h['role_name'] ?? 'System') ?>
+                                    </span>
+                                </div>
+                                <span class="badge <?= status_badge_class($h['status']) ?>" style="font-size:11px;">
+                                    <span class="status-dot"></span>
+                                    <?= status_label($h['status']) ?>
+                                </span>
+                            </div>
+                            <div class="remark-timestamp" style="margin-bottom:8px;">
+                                <i data-lucide="clock" style="width:12px;height:12px;display:inline-block;vertical-align:middle;margin-right:3px;"></i>
                                 <?= format_date($h['changed_at'], 'M d, Y · h:i A') ?>
                             </div>
                             <?php if ($h['remarks']): ?>
-                                <div style="font-size:12.5px;color:var(--color-text);margin-top:6px;line-height:1.5;background:var(--color-bg);padding:8px 10px;border-radius:6px;border:1px solid var(--color-border-subtle);">
-                                    <?= clean($h['remarks']) ?>
+                                <div class="remark-body">
+                                    <?= nl2br(clean($h['remarks'])) ?>
+                                </div>
+                            <?php else: ?>
+                                <div style="font-size:12px;color:var(--color-text-muted);font-style:italic;">
+                                    Status updated to <?= status_label($h['status']) ?> without additional comment.
                                 </div>
                             <?php endif; ?>
                         </div>

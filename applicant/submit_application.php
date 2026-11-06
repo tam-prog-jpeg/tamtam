@@ -33,8 +33,15 @@ if (!$profile) {
 }
 $applicantId = $profile['applicant_id'];
 
-// Load active application types
-$applicationTypesResult = mysqli_query($conn, "SELECT * FROM application_types WHERE is_active = 1 ORDER BY type_name");
+// Ensure schema has custom_category in applications and 'Others' in application_types
+ensure_application_schema($conn);
+
+// Load active application types ordered: Copyright, Industrial Design, Patent, Trademark, Utility Model, Others
+$applicationTypesResult = mysqli_query($conn, "
+    SELECT * FROM application_types 
+    WHERE is_active = 1 
+    ORDER BY FIELD(type_name, 'Copyright', 'Industrial Design', 'Patent', 'Trademark', 'Utility Model', 'Others'), type_name ASC
+");
 $appTypesList = [];
 while ($t = mysqli_fetch_assoc($applicationTypesResult)) {
     $appTypesList[] = $t;
@@ -45,9 +52,10 @@ $errors = [];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf($_POST['csrf_token'] ?? '');
 
-    $typeId      = (int) ($_POST['type_id'] ?? 0);
-    $title       = sanitize_input($_POST['title'] ?? '');
-    $description = sanitize_input($_POST['description'] ?? '');
+    $typeId         = (int) ($_POST['type_id'] ?? 0);
+    $customCategory = sanitize_input($_POST['custom_category'] ?? '');
+    $title          = sanitize_input($_POST['title'] ?? '');
+    $description    = sanitize_input($_POST['description'] ?? '');
 
     if ($typeId <= 0) $errors[] = 'Please select an intellectual property category.';
     if ($title === '') $errors[] = 'Please enter a title for your application.';
@@ -62,7 +70,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // Compile Category-Specific Statutory Questionnaire
+    if ($selectedTypeName === 'Others') {
+        if ($customCategory === '') {
+            $errors[] = 'Please specify your custom intellectual property category.';
+        } elseif (strlen($customCategory) > 150) {
+            $errors[] = 'Custom category is too long (max 150 characters).';
+        }
+    } else {
+        $customCategory = null;
+    }
+
+    // Compile Category-Specific Questionnaire (Clear, Professional, No Legal Citations)
     $compiledParts = [];
 
     if ($selectedTypeName === 'Patent') {
@@ -80,15 +98,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($claims === '') $errors[] = 'Patent: Please enumerate the Primary Claims & Novel Technical Features.';
         if ($industrialApp === '') $errors[] = 'Patent: Please state the Industrial & Commercial Applicability.';
 
-        $compiledParts[] = "=== STATUTORY IP DISCLOSURE: INVENTION PATENT ===";
-        $compiledParts[] = "Legal Basis: Republic Act No. 8293 (Intellectual Property Code of the Philippines), Part II, Ch. II\n";
+        $compiledParts[] = "=== TECHNICAL DISCLOSURE: INVENTION PATENT ===";
         $compiledParts[] = "1. TECHNICAL FIELD & DISCIPLINE:\n" . $techField;
         $compiledParts[] = "\n2. BACKGROUND & DEFICIENCIES OF PRIOR ART:\n" . $priorArt;
         $compiledParts[] = "\n3. TECHNICAL SOLUTION & INVENTIVE STEP (NON-OBVIOUSNESS):\n" . $inventiveStep;
         $compiledParts[] = "\n4. PRIMARY CLAIMS & NOVEL TECHNICAL FEATURES:\n" . $claims;
         $compiledParts[] = "\n5. INDUSTRIAL & COMMERCIAL APPLICABILITY:\n" . $industrialApp;
         $disclosureFull  = $priorDisclosure . ($priorDetails !== '' ? " — $priorDetails" : "");
-        $compiledParts[] = "\n6. PRIOR PUBLIC DISCLOSURE DECLARATION (RA 8293 SEC. 25):\n" . $disclosureFull;
+        $compiledParts[] = "\n6. PRIOR PUBLIC DISCLOSURE DECLARATION:\n" . $disclosureFull;
 
     } elseif ($selectedTypeName === 'Utility Model') {
         $deviceField     = sanitize_input($_POST['um_device_field'] ?? '');
@@ -102,8 +119,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($construction === '') $errors[] = 'Utility Model: Please describe the New Physical Configuration & Structural Construction.';
         if ($operationalGain === '') $errors[] = 'Utility Model: Please state the Practical Advantages & Operational Utility.';
 
-        $compiledParts[] = "=== STATUTORY IP DISCLOSURE: UTILITY MODEL ===";
-        $compiledParts[] = "Legal Basis: Republic Act No. 8293, Part II, Chapter XII (Practical Petty Patent)\n";
+        $compiledParts[] = "=== TECHNICAL DISCLOSURE: UTILITY MODEL ===";
         $compiledParts[] = "1. FIELD OF THE PRACTICAL APPARATUS / IMPLEMENT:\n" . $deviceField;
         $compiledParts[] = "\n2. DEFICIENCIES OF CONVENTIONAL DEVICES:\n" . $drawback;
         $compiledParts[] = "\n3. NEW PHYSICAL CONFIGURATION & STRUCTURAL CONSTRUCTION:\n" . $construction;
@@ -121,10 +137,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($visualFeatures === '') $errors[] = 'Industrial Design: Please describe the Distinctive Visual & Aesthetic Features.';
         if ($noveltyStmt === '') $errors[] = 'Industrial Design: Please provide the Statement of Novelty.';
 
-        $compiledParts[] = "=== STATUTORY IP DISCLOSURE: INDUSTRIAL DESIGN ===";
-        $compiledParts[] = "Legal Basis: Republic Act No. 8293, Part II, Chapter XIII & Locarno Classification System\n";
+        $compiledParts[] = "=== TECHNICAL DISCLOSURE: INDUSTRIAL DESIGN ===";
         $compiledParts[] = "1. ARTICLE OF MANUFACTURE / PRODUCT EMBODIMENT:\n" . $articleName;
-        $compiledParts[] = "\n2. LOCARNO INTERNATIONAL CLASSIFICATION:\n" . $locarnoClass;
+        $compiledParts[] = "\n2. CLASSIFICATION / CATEGORY:\n" . $locarnoClass;
         $compiledParts[] = "\n3. DISTINCTIVE VISUAL, AESTHETIC & ORNAMENTAL FEATURES:\n" . $visualFeatures;
         $compiledParts[] = "\n4. STANDARD ORTHOGRAPHIC PERSPECTIVES ATTACHED:\n" . $viewsConfirmed;
         $compiledParts[] = "\n5. STATEMENT OF NOVELTY:\n" . $noveltyStmt;
@@ -137,15 +152,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $commercialStat  = sanitize_input($_POST['tm_commercial_status'] ?? '');
 
         if ($markType === '') $errors[] = 'Trademark: Please select the Mark Type.';
-        if ($niceClass === '') $errors[] = 'Trademark: Please provide the Nice Classification and List of Goods/Services.';
+        if ($niceClass === '') $errors[] = 'Trademark: Please provide the Specification of Goods/Services.';
 
-        $compiledParts[] = "=== STATUTORY IP DISCLOSURE: TRADEMARK ===";
-        $compiledParts[] = "Legal Basis: Republic Act No. 8293, Part III & Nice Classification System\n";
+        $compiledParts[] = "=== TECHNICAL DISCLOSURE: TRADEMARK ===";
         $compiledParts[] = "1. TYPE OF TRADEMARK:\n" . $markType;
         $compiledParts[] = "\n2. LITERAL MEANING, ACRONYM, OR TRANSLATION:\n" . ($literalMeaning ?: 'None / Arbitrary Mark');
         $compiledParts[] = "\n3. COLOR CLAIM & SPECIFICATION:\n" . ($colorClaimed ?: 'None (All colors / Black & White)');
-        $compiledParts[] = "\n4. NICE CLASSIFICATION & SPECIFICATION OF GOODS / SERVICES:\n" . $niceClass;
-        $compiledParts[] = "\n5. COMMERCIAL USE STATUS (DECLARATION OF ACTUAL USE - DAU):\n" . $commercialStat;
+        $compiledParts[] = "\n4. SPECIFICATION OF GOODS / SERVICES:\n" . $niceClass;
+        $compiledParts[] = "\n5. COMMERCIAL USE STATUS:\n" . $commercialStat;
 
     } elseif ($selectedTypeName === 'Copyright') {
         $workClass       = sanitize_input($_POST['cr_work_classification'] ?? '');
@@ -160,15 +174,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($creationYear === '') $errors[] = 'Copyright: Please enter the Year/Date of Creation.';
         if ($coAuthors === '') $errors[] = 'Copyright: Please enumerate the Co-Authors & Contribution Allocation.';
 
-        $compiledParts[] = "=== STATUTORY IP DISCLOSURE: COPYRIGHT DEPOSIT ===";
-        $compiledParts[] = "Legal Basis: Republic Act No. 8293, Part IV (Sec. 172 Statutory Works)\n";
-        $compiledParts[] = "1. CLASSIFICATION OF WORK (SEC. 172 RA 8293):\n" . $workClass;
+        $compiledParts[] = "=== TECHNICAL DISCLOSURE: COPYRIGHT DEPOSIT ===";
+        $compiledParts[] = "1. CLASSIFICATION OF WORK:\n" . $workClass;
         $compiledParts[] = "\n2. YEAR & DATE OF CREATION:\n" . $creationYear;
         $pubFull         = $pubStatus . ($pubDetails !== '' ? " — $pubDetails" : "");
         $compiledParts[] = "\n3. PUBLICATION STATUS & FIRST PUBLICATION DETAILS:\n" . $pubFull;
         $compiledParts[] = "\n4. CO-AUTHORS & ACADEMIC CONTRIBUTION ALLOCATION:\n" . $coAuthors;
         $compiledParts[] = "\n5. INSTITUTIONAL SPONSORSHIP & FUNDING SOURCE:\n" . $fundingSource;
         $compiledParts[] = "\n6. NATURE OF DEPOSITED SPECIMEN:\n" . ($specimenDesc ?: 'Attached digital specimen');
+
+    } elseif ($selectedTypeName === 'Others') {
+        $otherNature = sanitize_input($_POST['other_nature'] ?? '');
+        $otherDesc   = sanitize_input($_POST['other_description'] ?? '');
+
+        if ($otherNature === '') $errors[] = 'Others: Please specify the Nature of the Creation / Innovation.';
+        if ($otherDesc === '') $errors[] = 'Others: Please provide a description of the key technical or creative features.';
+
+        $compiledParts[] = "=== TECHNICAL DISCLOSURE: " . strtoupper($customCategory ?: 'CUSTOM IP') . " ===";
+        $compiledParts[] = "1. CUSTOM IP CLASSIFICATION:\n" . ($customCategory ?: 'Others');
+        $compiledParts[] = "\n2. NATURE OF THE CREATION / INNOVATION:\n" . $otherNature;
+        $compiledParts[] = "\n3. DISTINCTIVE TECHNICAL OR CREATIVE FEATURES:\n" . $otherDesc;
     }
 
     if (!empty($description)) {
@@ -211,15 +236,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $trackingCode = generate_tracking_code($conn);
 
             $ins = mysqli_prepare($conn, "
-                INSERT INTO applications (tracking_code, applicant_id, type_id, title, description, college_id, department_id, status)
-                VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')
+                INSERT INTO applications (tracking_code, applicant_id, type_id, custom_category, title, description, college_id, department_id, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')
             ");
-            mysqli_stmt_bind_param($ins, 'siissii', $trackingCode, $applicantId, $typeId, $title, $finalDescription, $profile['college_id'], $profile['department_id']);
+            mysqli_stmt_bind_param($ins, 'siisssii', $trackingCode, $applicantId, $typeId, $customCategory, $title, $finalDescription, $profile['college_id'], $profile['department_id']);
             mysqli_stmt_execute($ins);
             $newAppId = mysqli_insert_id($conn);
             mysqli_stmt_close($ins);
 
-            $hist = mysqli_prepare($conn, "INSERT INTO application_status_history (application_id, status, remarks, changed_by) VALUES (?, 'pending', 'Application submitted with statutory IP disclosure.', ?)");
+            $hist = mysqli_prepare($conn, "INSERT INTO application_status_history (application_id, status, remarks, changed_by) VALUES (?, 'pending', 'Application submitted with technical disclosure.', ?)");
             mysqli_stmt_bind_param($hist, 'ii', $newAppId, $_SESSION['user_id']);
             mysqli_stmt_execute($hist);
             mysqli_stmt_close($hist);
@@ -238,6 +263,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
 
+            $notificationCat = ($selectedTypeName === 'Others' && $customCategory !== '') ? $customCategory : $selectedTypeName;
+
             // Notify all active Staff members of the incoming application
             $staffUsers = mysqli_query($conn, "
                 SELECT u.user_id FROM users u
@@ -249,7 +276,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $conn,
                     $s['user_id'],
                     'New Application Submitted',
-                    "A new $selectedTypeName application ($trackingCode) was submitted by {$_SESSION['first_name']} {$_SESSION['last_name']} and is awaiting screening.",
+                    "A new $notificationCat application ($trackingCode) was submitted by {$_SESSION['first_name']} {$_SESSION['last_name']} and is awaiting screening.",
                     'staff/verify.php'
                 );
             }
@@ -313,8 +340,8 @@ require_once __DIR__ . '/../includes/header.php';
                 <i data-lucide="file-plus" style="width:18px;height:18px;"></i>
             </div>
             <div>
-                <h3 style="margin:0;font-size:16px;">Statutory Intellectual Property Disclosure</h3>
-                <div style="font-size:12px;color:var(--color-text-muted);">Fill in all category-specific technical questions mandated by IPOPHL and RA 8293</div>
+                <h3 style="margin:0;font-size:16px;">Intellectual Property Technical Disclosure</h3>
+                <div style="font-size:12px;color:var(--color-text-muted);">Complete the technical questions and information for your selected IP category</div>
             </div>
         </div>
 
@@ -334,31 +361,105 @@ require_once __DIR__ . '/../includes/header.php';
             <form method="POST" enctype="multipart/form-data" id="ipApplicationForm">
                 <?php csrf_field(); ?>
 
-                <!-- Step 1: Category Selection -->
+                <!-- Step 1: Category Selection (Custom Styled SaaS Dropdown) -->
                 <div class="form-group" style="margin-bottom:22px;">
                     <div class="form-label-row">
-                        <label for="type_id" class="form-label" style="font-size:14px;font-weight:700;">
+                        <label class="form-label" style="font-size:14px;font-weight:700;">
                             1. Intellectual Property Category <span class="required-mark">*</span>
                         </label>
-                        <span class="optional-badge">Statutory Track</span>
+                        <span class="optional-badge">Select Classification</span>
                     </div>
-                    <div class="input-icon-wrap has-left-icon">
-                        <i data-lucide="layers" class="input-icon-left"></i>
-                        <select name="type_id" id="type_id" class="form-control form-select" required onchange="onTypeChange()">
-                            <option value="">— Select IP Category to Load Form —</option>
-                            <?php foreach ($appTypesList as $t): ?>
-                                <option 
-                                    value="<?= $t['type_id'] ?>" 
-                                    data-name="<?= clean($t['type_name']) ?>" 
-                                    data-desc="<?= clean($t['requirements']) ?>" 
-                                    <?= (int)($_POST['type_id'] ?? 0) === (int)$t['type_id'] ? 'selected' : '' ?>
-                                >
-                                    <?= clean($t['type_name']) ?>
-                                </option>
+
+                    <!-- Native select (kept hidden for browser form POST and standard validation) -->
+                    <select name="type_id" id="type_id" style="display:none;" required onchange="onTypeChange()">
+                        <option value="">— Select IP Category —</option>
+                        <?php foreach ($appTypesList as $t): ?>
+                            <option 
+                                value="<?= $t['type_id'] ?>" 
+                                data-name="<?= clean($t['type_name']) ?>" 
+                                data-desc="<?= clean($t['requirements']) ?>" 
+                                <?= (int)($_POST['type_id'] ?? 0) === (int)$t['type_id'] ? 'selected' : '' ?>
+                            >
+                                <?= clean($t['type_name']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+
+                    <!-- Custom Dropdown Trigger & Options Menu -->
+                    <div class="custom-dropdown-wrap" id="categoryDropdownWrap">
+                        <button type="button" class="custom-dropdown-trigger" id="categoryDropdownBtn" aria-haspopup="listbox" aria-expanded="false">
+                            <div class="custom-dropdown-selected">
+                                <div class="custom-dropdown-icon-box" id="selectedCategoryIcon">
+                                    <i data-lucide="layers" style="width:16px;height:16px;"></i>
+                                </div>
+                                <div>
+                                    <div class="custom-dropdown-label" id="selectedCategoryTitle">— Select IP Category —</div>
+                                    <div class="custom-dropdown-desc" id="selectedCategorySubtitle">Choose the intellectual property protection track</div>
+                                </div>
+                            </div>
+                            <i data-lucide="chevron-down" class="custom-dropdown-arrow" style="width:18px;height:18px;"></i>
+                        </button>
+
+                        <div class="custom-dropdown-menu" id="categoryDropdownMenu" role="listbox">
+                            <?php
+                            $categoryMeta = [
+                                'Copyright'         => ['icon' => 'book-open', 'desc' => 'Literary, artistic, academic, or software creations'],
+                                'Industrial Design' => ['icon' => 'shapes', 'desc' => 'Aesthetic, ornamental, or 3D physical configurations'],
+                                'Patent'            => ['icon' => 'lightbulb', 'desc' => 'Inventions, technical solutions, and mechanical processes'],
+                                'Trademark'         => ['icon' => 'badge-check', 'desc' => 'Brand marks, logos, symbols, or distinctive commercial signs'],
+                                'Utility Model'     => ['icon' => 'wrench', 'desc' => 'Practical implements, devices, and structural improvements'],
+                                'Others'            => ['icon' => 'folder-plus', 'desc' => 'Custom or emerging intellectual property classification'],
+                            ];
+                            ?>
+                            <?php foreach ($appTypesList as $t): 
+                                $tName = $t['type_name'];
+                                $meta = $categoryMeta[$tName] ?? ['icon' => 'file-text', 'desc' => clean($t['description'] ?? 'IP Classification')];
+                                $isSelected = (int)($_POST['type_id'] ?? 0) === (int)$t['type_id'];
+                            ?>
+                            <div class="custom-dropdown-item <?= $isSelected ? 'selected' : '' ?>" 
+                                 role="option" 
+                                 data-id="<?= $t['type_id'] ?>" 
+                                 data-name="<?= clean($tName) ?>"
+                                 data-icon="<?= $meta['icon'] ?>"
+                                 data-desc="<?= clean($meta['desc']) ?>"
+                                 tabindex="0">
+                                <div style="display:flex;align-items:center;gap:12px;min-width:0;">
+                                    <div class="custom-dropdown-icon-box">
+                                        <i data-lucide="<?= $meta['icon'] ?>" style="width:16px;height:16px;"></i>
+                                    </div>
+                                    <div>
+                                        <div class="custom-dropdown-label"><?= clean($tName) ?></div>
+                                        <div class="custom-dropdown-desc"><?= clean($meta['desc']) ?></div>
+                                    </div>
+                                </div>
+                                <i data-lucide="check" class="custom-dropdown-item-check" style="width:16px;height:16px;"></i>
+                            </div>
                             <?php endforeach; ?>
-                        </select>
+                        </div>
                     </div>
-                    <div id="typeRequirements" class="form-hint" style="min-height:18px;"></div>
+
+                    <!-- Conditional "Others" Custom Category Input Field (Hidden by default) -->
+                    <div id="otherCategoryWrap" style="display:none;margin-top:14px;">
+                        <label for="custom_category" class="form-label" style="font-size:13.5px;font-weight:700;">
+                            Specify Custom IP Category <span class="required-mark">*</span>
+                        </label>
+                        <div class="input-icon-wrap has-left-icon">
+                            <i data-lucide="tag" class="input-icon-left"></i>
+                            <input 
+                                type="text" 
+                                name="custom_category" 
+                                id="custom_category" 
+                                class="form-control" 
+                                placeholder="e.g. Trade Secret, Plant Variety, Integrated Circuit Layout..." 
+                                value="<?= clean($_POST['custom_category'] ?? '') ?>"
+                                maxlength="150"
+                            >
+                        </div>
+                        <div class="form-hint">
+                            <i data-lucide="info"></i>
+                            <span>Enter the formal title or classification name for this custom intellectual property.</span>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Step 2: Invention / Work Title -->
@@ -390,7 +491,7 @@ require_once __DIR__ . '/../includes/header.php';
                 </div>
 
                 <!-- =============================================================
-                     STEP 3: DYNAMIC CATEGORY-SPECIFIC STATUTORY QUESTIONNAIRE
+                     STEP 3: DYNAMIC CATEGORY-SPECIFIC QUESTIONNAIRE
                      ============================================================= -->
                 <div id="categoryQuestionnaires" style="margin-top:10px;margin-bottom:24px;">
 
@@ -401,13 +502,12 @@ require_once __DIR__ . '/../includes/header.php';
                         </div>
                         <h4 style="margin:0 0 6px;font-size:15px;color:var(--color-text);">Select an IP Category Above</h4>
                         <p style="margin:0;font-size:12.5px;color:var(--color-text-muted);max-width:440px;margin:0 auto;line-height:1.5;">
-                            Each intellectual property classification (Patent, Utility Model, Industrial Design, Trademark, or Copyright) enforces specific statutory questions mandated under Republic Act No. 8293 and IPOPHL regulations.
+                            Choose Copyright, Industrial Design, Patent, Trademark, Utility Model, or Others to load the corresponding technical form.
                         </p>
                     </div>
 
                     <!-- =========================================================
                          CATEGORY 1: INVENTION PATENT QUESTIONNAIRE
-                         Criteria: Novelty, Inventive Step, Industrial Applicability
                          ========================================================= -->
                     <div id="panel-patent" class="category-question-panel" style="display:none;">
                         <div style="background:rgba(37,99,235,0.05);border:1px solid rgba(37,99,235,0.2);border-left:4px solid var(--color-primary-600);border-radius:var(--radius-md);padding:14px 18px;margin-bottom:18px;">
@@ -415,11 +515,11 @@ require_once __DIR__ . '/../includes/header.php';
                                 <div style="display:flex;align-items:center;gap:8px;">
                                     <i data-lucide="lightbulb" style="width:18px;height:18px;color:var(--color-primary-600);"></i>
                                     <div>
-                                        <strong style="font-size:14px;color:var(--color-text);display:block;">Invention Patent Statutory Disclosure</strong>
-                                        <span style="font-size:11.5px;color:var(--color-text-muted);">Republic Act 8293, Part II, Chapter II · 20-Year Legal Protection Term</span>
+                                        <strong style="font-size:14px;color:var(--color-text);display:block;">Patent Technical Disclosure</strong>
+                                        <span style="font-size:11.5px;color:var(--color-text-muted);">Invention overview, technical solutions, and novelty features</span>
                                     </div>
                                 </div>
-                                <span class="badge badge-primary" style="font-size:11px;">High Inventive Step Required</span>
+                                <span class="badge badge-primary" style="font-size:11px;">Inventive Step</span>
                             </div>
                         </div>
 
@@ -551,7 +651,7 @@ require_once __DIR__ . '/../includes/header.php';
                                     value="<?= clean($_POST['patent_prior_disclosure_details'] ?? '') ?>"
                                 >
                                 <div class="form-hint" style="font-size:11px;">
-                                    <span>RA 8293 Sec. 25 provides a 12-month grace period for disclosures made by the inventor.</span>
+                                    <span>Disclosures made within 12 months prior to filing are reviewed under novelty grace period guidelines.</span>
                                 </div>
                             </div>
                         </div>
@@ -567,8 +667,8 @@ require_once __DIR__ . '/../includes/header.php';
                                 <div style="display:flex;align-items:center;gap:8px;">
                                     <i data-lucide="wrench" style="width:18px;height:18px;color:var(--color-warning);"></i>
                                     <div>
-                                        <strong style="font-size:14px;color:var(--color-text);display:block;">Utility Model Practical Innovation Disclosure</strong>
-                                        <span style="font-size:11.5px;color:var(--color-text-muted);">Republic Act 8293, Part II, Chapter XII · 7-Year Term (Fast-Track Protection)</span>
+                                        <strong style="font-size:14px;color:var(--color-text);display:block;">Utility Model Technical Disclosure</strong>
+                                        <span style="font-size:11.5px;color:var(--color-text-muted);">Practical configuration, apparatus enhancements, and utility features</span>
                                     </div>
                                 </div>
                                 <span class="badge badge-warning" style="font-size:11px;">Practical Utility Standard</span>
@@ -675,7 +775,7 @@ require_once __DIR__ . '/../includes/header.php';
                                     <i data-lucide="palette" style="width:18px;height:18px;color:#8B5CF6;"></i>
                                     <div>
                                         <strong style="font-size:14px;color:var(--color-text);display:block;">Industrial Design Aesthetic Specification</strong>
-                                        <span style="font-size:11.5px;color:var(--color-text-muted);">Republic Act 8293, Part II, Chapter XIII &amp; Locarno Classification · 5 to 15 Years Term</span>
+                                        <span style="font-size:11.5px;color:var(--color-text-muted);">Aesthetic &amp; Ornamental Design Representation · 5 to 15 Years Protection Term</span>
                                     </div>
                                 </div>
                                 <span class="badge" style="background:rgba(139,92,246,0.15);color:#7C3AED;font-size:11px;">Visual Aesthetic Standard</span>
@@ -704,7 +804,7 @@ require_once __DIR__ . '/../includes/header.php';
 
                             <div class="form-group">
                                 <label class="form-label">
-                                    Locarno Classification (Suggested) <span class="required-mark">*</span>
+                                    Design Classification / Category <span class="required-mark">*</span>
                                 </label>
                                 <select name="id_locarno_class" id="id_locarno_class" class="form-control form-select" data-required="true">
                                     <option value="Class 09: Packages, Containers & Closures" <?= ($_POST['id_locarno_class'] ?? '') === 'Class 09: Packages, Containers & Closures' ? 'selected' : '' ?>>Class 09: Packages, Containers &amp; Closures</option>
@@ -787,7 +887,7 @@ require_once __DIR__ . '/../includes/header.php';
                                     <i data-lucide="bookmark" style="width:18px;height:18px;color:var(--color-success);"></i>
                                     <div>
                                         <strong style="font-size:14px;color:var(--color-text);display:block;">Trademark Distinctiveness &amp; Brand Representation</strong>
-                                        <span style="font-size:11.5px;color:var(--color-text-muted);">Republic Act 8293, Part III &amp; Nice Classification · 10-Year Renewable Protection Term</span>
+                                        <span style="font-size:11.5px;color:var(--color-text-muted);">Brand Identity &amp; Commercial Distinction · 10-Year Renewable Protection Term</span>
                                     </div>
                                 </div>
                                 <span class="badge badge-success" style="font-size:11px;">Distinctiveness Standard</span>
@@ -846,10 +946,10 @@ require_once __DIR__ . '/../includes/header.php';
                             </div>
                         </div>
 
-                        <!-- 3. Nice Classification & Specification -->
+                        <!-- 3. Classification & Specification of Goods / Services -->
                         <div class="form-group">
                             <label class="form-label">
-                                Nice International Classification &amp; Specification of Goods / Services <span class="required-mark">*</span>
+                                Classification &amp; Specification of Goods / Services <span class="required-mark">*</span>
                             </label>
                             <textarea 
                                 name="tm_nice_classification" 
@@ -891,8 +991,8 @@ require_once __DIR__ . '/../includes/header.php';
                                 <div style="display:flex;align-items:center;gap:8px;">
                                     <i data-lucide="book-open" style="width:18px;height:18px;color:#0891B2;"></i>
                                     <div>
-                                        <strong style="font-size:14px;color:var(--color-text);display:block;">Copyright Authorship &amp; Statutory Deposit Record</strong>
-                                        <span style="font-size:11.5px;color:var(--color-text-muted);">Republic Act 8293, Part IV (Sec. 172 Statutory Works) · Life + 50 Years Term</span>
+                                        <strong style="font-size:14px;color:var(--color-text);display:block;">Copyright Authorship &amp; Creative Deposit Record</strong>
+                                        <span style="font-size:11.5px;color:var(--color-text-muted);">Original Literary, Artistic &amp; Scientific Works · Lifetime + 50 Years Protection</span>
                                     </div>
                                 </div>
                                 <span class="badge" style="background:rgba(6,182,212,0.15);color:#0891B2;font-size:11px;">Originality &amp; Authorship Standard</span>
@@ -903,7 +1003,7 @@ require_once __DIR__ . '/../includes/header.php';
                         <div class="form-row">
                             <div class="form-group">
                                 <label class="form-label">
-                                    Classification of Work (Sec. 172 RA 8293) <span class="required-mark">*</span>
+                                    Classification of Creative Work <span class="required-mark">*</span>
                                 </label>
                                 <select name="cr_work_classification" id="cr_work_classification" class="form-control form-select" data-required="true">
                                     <option value="Class A: Books, Pamphlets, Research Theses, Articles & Manuscripts" <?= ($_POST['cr_work_classification'] ?? '') === 'Class A: Books, Pamphlets, Research Theses, Articles & Manuscripts' ? 'selected' : '' ?>>Class A: Books, Theses, Articles &amp; Manuscripts</option>
@@ -1004,6 +1104,42 @@ require_once __DIR__ . '/../includes/header.php';
                                     placeholder="e.g. Complete 85-page Thesis Manuscript PDF / Source Code Repository (First & Last 25 pages)"
                                     value="<?= clean($_POST['cr_specimen_description'] ?? '') ?>"
                                 >
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- =========================================================
+                         CATEGORY 6: OTHERS / CUSTOM CATEGORY QUESTIONNAIRE
+                         ========================================================= -->
+                    <div id="panel-others" class="category-question-panel" style="display:none;">
+                        <div style="background:rgba(100,116,139,0.06);border:1px solid rgba(100,116,139,0.25);border-left:4px solid #64748B;border-radius:var(--radius-md);padding:14px 18px;margin-bottom:18px;">
+                            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+                                <div style="display:flex;align-items:center;gap:8px;">
+                                    <i data-lucide="folder-plus" style="width:18px;height:18px;color:#64748B;"></i>
+                                    <div>
+                                        <strong style="font-size:14px;color:var(--color-text);display:block;">Custom Intellectual Property Disclosure</strong>
+                                        <span style="font-size:11.5px;color:var(--color-text-muted);">Self-Specified Filing Category · Institutional Evaluation &amp; Record</span>
+                                    </div>
+                                </div>
+                                <span class="badge badge-secondary" style="font-size:11px;">Custom IP Submission</span>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">
+                                Detailed Scope &amp; Technical / Creative Summary <span class="required-mark">*</span>
+                            </label>
+                            <textarea 
+                                name="other_ip_summary" 
+                                id="other_ip_summary" 
+                                class="form-control" 
+                                rows="4" 
+                                data-required="true"
+                                placeholder="Explain the key novelty, unique characteristics, functional elements, or creative works embodied in this submission..."
+                            ><?= clean($_POST['other_ip_summary'] ?? '') ?></textarea>
+                            <div class="form-hint">
+                                <i data-lucide="info"></i>
+                                <span>Provide sufficient clarity to enable the assigned IPO evaluator to properly classify and examine your submission.</span>
                             </div>
                         </div>
                     </div>
@@ -1156,7 +1292,7 @@ require_once __DIR__ . '/../includes/header.php';
                     <ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:8px;">
                         <li><strong>7 Standard Perspectives (PDF/PNG/JPEG):</strong> Perspective, Front, Back, Top, Bottom, Left Side, and Right Side views.</li>
                         <li><strong>Neutral Studio Background:</strong> Solid white or clean contrast; no shadows, dimensions, or technical annotations.</li>
-                        <li><strong>Locarno Classification:</strong> Identification of the industrial article product class.</li>
+                        <li><strong>Classification Details:</strong> Identification of the industrial article product category.</li>
                         <li><strong>No Functional Claims:</strong> Drawings must depict only the ornamental shape and surface aesthetics.</li>
                     </ul>
                 </div>
@@ -1168,7 +1304,7 @@ require_once __DIR__ . '/../includes/header.php';
                     </div>
                     <ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:8px;">
                         <li><strong>High-Resolution Specimen (PNG/JPEG):</strong> Clear digital logo or wordmark on transparent/white canvas.</li>
-                        <li><strong>Nice Classification List:</strong> Explicit listing of goods or commercial services per international class.</li>
+                        <li><strong>Classification &amp; Goods Specification:</strong> Explicit listing of goods or commercial services per international class.</li>
                         <li><strong>Declaration of Actual Use (DAU):</strong> Mandatory statutory filing with invoices/packaging within 3 years.</li>
                         <li><strong>Avoid Descriptive Terms:</strong> Mark must be distinctive, non-generic, and not deceptive.</li>
                     </ul>
@@ -1183,7 +1319,19 @@ require_once __DIR__ . '/../includes/header.php';
                         <li><strong>Official Deposit Specimen (PDF):</strong> Complete manuscript, source code listing, curriculum module, or plan.</li>
                         <li><strong>Co-Author Conforme:</strong> Documented agreement confirming percentage contributions among all creators.</li>
                         <li><strong>Affiliation Declaration:</strong> Distinguishing between institutional work-for-hire and independent creation.</li>
-                        <li><strong>Sec. 172 Certificate:</strong> Official ZPPSU IPO deposit certificate issued upon verification.</li>
+                        <li><strong>Official Certificate:</strong> Official ZPPSU IPO deposit certificate issued upon verification.</li>
+                    </ul>
+                </div>
+
+                <!-- Others Checklist -->
+                <div id="checklist-others" class="category-checklist" style="display:none;">
+                    <div style="font-weight:700;color:#64748B;margin-bottom:8px;font-size:13px;">
+                        Custom Intellectual Property Deliverables:
+                    </div>
+                    <ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:8px;">
+                        <li><strong>Complete Technical / Creative Specification (PDF):</strong> Comprehensive documentation describing the work, method, or composition.</li>
+                        <li><strong>Supporting Drawings / Schematics:</strong> Any blueprints, digital renderings, or sample files (if applicable).</li>
+                        <li><strong>Authorship &amp; Ownership Conforme:</strong> Documentation of contributing authors or institutional affiliation.</li>
                     </ul>
                 </div>
             </div>
@@ -1205,6 +1353,9 @@ require_once __DIR__ . '/../includes/header.php';
         var allCatInputs = document.querySelectorAll('.category-question-panel [data-required="true"]');
         allCatInputs.forEach(function(inp) { inp.required = false; });
 
+        var otherWrap = document.getElementById('otherCategoryWrap');
+        var customCategoryInput = document.getElementById('custom_category');
+
         var emptyPrompt = document.getElementById('panel-empty');
         var targetPanel = null;
         var targetChecklist = null;
@@ -1214,22 +1365,44 @@ require_once __DIR__ . '/../includes/header.php';
             targetPanel = document.getElementById('panel-patent');
             targetChecklist = document.getElementById('checklist-patent');
             hintHtml = '<i data-lucide="info"></i> <span>For <strong>Patent</strong>: Attach Complete Technical Specification (PDF), Formal Claims Sheet, and Figures/Drawings (PDF/PNG).</span>';
+            if (otherWrap) otherWrap.style.display = 'none';
+            if (customCategoryInput) customCategoryInput.required = false;
         } else if (typeName === 'Utility Model') {
             targetPanel = document.getElementById('panel-utility-model');
             targetChecklist = document.getElementById('checklist-utility-model');
             hintHtml = '<i data-lucide="info"></i> <span>For <strong>Utility Model</strong>: Attach Technical Description (PDF), Assembly Drawings, and Working Prototype Photos.</span>';
+            if (otherWrap) otherWrap.style.display = 'none';
+            if (customCategoryInput) customCategoryInput.required = false;
         } else if (typeName === 'Industrial Design') {
             targetPanel = document.getElementById('panel-industrial-design');
             targetChecklist = document.getElementById('checklist-industrial-design');
             hintHtml = '<i data-lucide="info"></i> <span>For <strong>Industrial Design</strong>: Attach the 7 Standard Perspectives (Perspective, Front, Back, Top, Bottom, Left, Right) in high-res PNG/PDF.</span>';
+            if (otherWrap) otherWrap.style.display = 'none';
+            if (customCategoryInput) customCategoryInput.required = false;
         } else if (typeName === 'Trademark') {
             targetPanel = document.getElementById('panel-trademark');
             targetChecklist = document.getElementById('checklist-trademark');
             hintHtml = '<i data-lucide="info"></i> <span>For <strong>Trademark</strong>: Attach Clear High-Resolution Mark Specimen (PNG/JPEG) and Goods Classification List.</span>';
+            if (otherWrap) otherWrap.style.display = 'none';
+            if (customCategoryInput) customCategoryInput.required = false;
         } else if (typeName === 'Copyright') {
             targetPanel = document.getElementById('panel-copyright');
             targetChecklist = document.getElementById('checklist-copyright');
             hintHtml = '<i data-lucide="info"></i> <span>For <strong>Copyright</strong>: Attach Full Deposit Specimen (Complete Manuscript PDF / Source Code listing / Module).</span>';
+            if (otherWrap) otherWrap.style.display = 'none';
+            if (customCategoryInput) customCategoryInput.required = false;
+        } else if (typeName === 'Others') {
+            targetPanel = document.getElementById('panel-others');
+            targetChecklist = document.getElementById('checklist-others');
+            hintHtml = '<i data-lucide="info"></i> <span>For <strong>Custom Category</strong>: Attach Complete Documentation (PDF) and any diagrams or design files.</span>';
+            if (otherWrap) otherWrap.style.display = 'block';
+            if (customCategoryInput) {
+                customCategoryInput.required = true;
+                setTimeout(function() { customCategoryInput.focus(); }, 100);
+            }
+        } else {
+            if (otherWrap) otherWrap.style.display = 'none';
+            if (customCategoryInput) customCategoryInput.required = false;
         }
 
         // Hide all checklists
@@ -1256,7 +1429,7 @@ require_once __DIR__ . '/../includes/header.php';
         // Update requirements hint under type select
         var typeReq = document.getElementById('typeRequirements');
         if (typeReq && selectedOption && selectedOption.dataset.desc) {
-            typeReq.innerHTML = '<i data-lucide="info"></i> <span>Statutory Scope: ' + selectedOption.dataset.desc + '</span>';
+            typeReq.innerHTML = '<i data-lucide="info"></i> <span>Category Scope: ' + selectedOption.dataset.desc + '</span>';
         } else if (typeReq) {
             typeReq.innerHTML = '';
         }
@@ -1268,6 +1441,108 @@ require_once __DIR__ . '/../includes/header.php';
         }
 
         if (window.lucide) lucide.createIcons();
+    }
+
+    function initCustomDropdown() {
+        var wrap = document.getElementById('categoryDropdownWrap');
+        if (!wrap) return;
+
+        var btn = document.getElementById('categoryDropdownBtn');
+        var menu = document.getElementById('categoryDropdownMenu');
+        var nativeSelect = document.getElementById('type_id');
+        var titleEl = document.getElementById('selectedCategoryTitle');
+        var subtitleEl = document.getElementById('selectedCategorySubtitle');
+        var iconEl = document.getElementById('selectedCategoryIcon');
+        var items = menu ? menu.querySelectorAll('.custom-dropdown-item') : [];
+
+        if (!btn || !menu || !nativeSelect) return;
+
+        function openDropdown() {
+            wrap.classList.add('open');
+            menu.classList.add('open');
+            btn.classList.add('open');
+            btn.setAttribute('aria-expanded', 'true');
+        }
+
+        function closeDropdown() {
+            wrap.classList.remove('open');
+            menu.classList.remove('open');
+            btn.classList.remove('open');
+            btn.setAttribute('aria-expanded', 'false');
+        }
+
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (menu.classList.contains('open')) {
+                closeDropdown();
+            } else {
+                openDropdown();
+            }
+        });
+
+        items.forEach(function(item) {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                var val = item.getAttribute('data-id');
+                var name = item.getAttribute('data-name');
+                var desc = item.getAttribute('data-desc') || '';
+                var icon = item.getAttribute('data-icon') || 'layers';
+
+                // Update native select
+                nativeSelect.value = val;
+
+                // Update displayed title & subtitle
+                if (titleEl) titleEl.textContent = name;
+                if (subtitleEl) subtitleEl.textContent = desc;
+
+                // Update icon
+                if (iconEl && icon) {
+                    iconEl.innerHTML = '<i data-lucide="' + icon + '" style="width:16px;height:16px;"></i>';
+                    if (window.lucide) lucide.createIcons();
+                }
+
+                // Update active state in menu
+                items.forEach(function(i) { i.classList.remove('selected'); });
+                item.classList.add('selected');
+
+                // Close dropdown
+                closeDropdown();
+
+                // Trigger change event and onTypeChange()
+                onTypeChange();
+            });
+        });
+
+        // Close on click outside
+        document.addEventListener('click', function(e) {
+            if (!wrap.contains(e.target)) {
+                closeDropdown();
+            }
+        });
+
+        // Close on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeDropdown();
+            }
+        });
+
+        // If an initial option is already selected on page load (e.g. from POST or edit)
+        var selectedItem = menu.querySelector('.custom-dropdown-item.selected');
+        if (selectedItem) {
+            var sName = selectedItem.getAttribute('data-name');
+            var sDesc = selectedItem.getAttribute('data-desc');
+            var sIcon = selectedItem.getAttribute('data-icon');
+            if (titleEl && sName) titleEl.textContent = sName;
+            if (subtitleEl && sDesc) subtitleEl.textContent = sDesc;
+            if (iconEl && sIcon) {
+                iconEl.innerHTML = '<i data-lucide="' + sIcon + '" style="width:16px;height:16px;"></i>';
+                if (window.lucide) lucide.createIcons();
+            }
+        }
     }
 
     function togglePatentDisclosureDetails() {
@@ -1298,6 +1573,7 @@ require_once __DIR__ . '/../includes/header.php';
 
     // Initialize on page load
     document.addEventListener('DOMContentLoaded', function() {
+        initCustomDropdown();
         onTypeChange();
         var titleEl = document.getElementById('title');
         if (titleEl) updateTitleCount(titleEl);

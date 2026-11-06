@@ -50,6 +50,7 @@ $homeAnchor = fn($hash) => $homeLink . '#' . $hash; // browsers handle "?view=ho
                 <?php endforeach; endif; ?>
             </div>
         </li>
+        <li><a href="<?= $homeAnchor('announcements') ?>">Announcements</a></li>
         <li><a href="<?= $homeAnchor('contact') ?>">Contact</a></li>
     </ul>
 

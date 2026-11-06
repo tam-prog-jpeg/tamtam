@@ -13,15 +13,19 @@ require_role(['Administrator']);
 
 $status    = sanitize_input($_GET['status'] ?? '');
 $typeId    = (int) ($_GET['type_id'] ?? 0);
-$collegeId = (int) ($_GET['college_id'] ?? 0);
 $deptId    = (int) ($_GET['department_id'] ?? 0);
 $dateFrom  = sanitize_input($_GET['date_from'] ?? '');
 $dateTo    = sanitize_input($_GET['date_to'] ?? '');
 
+if ($dateFrom !== '' && $dateTo !== '' && $dateFrom > $dateTo) {
+    $tempD = $dateFrom;
+    $dateFrom = $dateTo;
+    $dateTo = $tempD;
+}
+
 $where = []; $types = ''; $params = [];
 if ($status !== '')   { $where[] = "a.status = ?"; $types .= 's'; $params[] = $status; }
 if ($typeId > 0)      { $where[] = "a.type_id = ?"; $types .= 'i'; $params[] = $typeId; }
-if ($collegeId > 0)   { $where[] = "a.college_id = ?"; $types .= 'i'; $params[] = $collegeId; }
 if ($deptId > 0)      { $where[] = "a.department_id = ?"; $types .= 'i'; $params[] = $deptId; }
 if ($dateFrom !== '') { $where[] = "DATE(a.submitted_at) >= ?"; $types .= 's'; $params[] = $dateFrom; }
 if ($dateTo !== '')   { $where[] = "DATE(a.submitted_at) <= ?"; $types .= 's'; $params[] = $dateTo; }
@@ -45,16 +49,19 @@ header('Content-Type: text/csv; charset=utf-8');
 header('Content-Disposition: attachment; filename="ipo_report_' . date('Ymd_His') . '.csv"');
 
 $out = fopen('php://output', 'w');
-fputcsv($out, ['Tracking Code', 'Title', 'Type', 'Status', 'Applicant', 'College', 'Department', 'Submitted']);
+fputcsv($out, ['Tracking Code', 'Title', 'Type', 'Status', 'Applicant', 'Office/Department', 'Submitted']);
 while ($row = mysqli_fetch_assoc($result)) {
+    $officeDept = ($row['department_name'] ?: ($row['college_name'] ?? ''));
+    if ($row['department_name'] && $row['college_name']) {
+        $officeDept .= ' · ' . $row['college_name'];
+    }
     fputcsv($out, [
         $row['tracking_code'],
         $row['title'],
         $row['type_name'],
         status_label($row['status']),
         $row['first_name'] . ' ' . $row['last_name'],
-        $row['college_name'] ?? '',
-        $row['department_name'] ?? '',
+        $officeDept,
         format_date($row['submitted_at'], 'Y-m-d H:i'),
     ]);
 }

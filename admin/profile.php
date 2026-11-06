@@ -17,9 +17,16 @@ $pageTitle   = 'My Profile';
 $currentPage = 'profile';
 $errors = [];
 
+// ---- Active tab selection ----
+$activeTab = sanitize_input($_GET['tab'] ?? 'account');
+if (!in_array($activeTab, ['account', 'security'], true)) {
+    $activeTab = 'account';
+}
+
 // ---- Update profile info + recovery email ----
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['form'] ?? '') === 'profile') {
     verify_csrf($_POST['csrf_token'] ?? '');
+    $activeTab = 'account';
 
     $first_name     = sanitize_input($_POST['first_name'] ?? '');
     $last_name      = sanitize_input($_POST['last_name'] ?? '');
@@ -45,13 +52,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['form'] ?? '') === 'profile
 
         log_audit($conn, $_SESSION['user_id'], 'update_profile', 'Administrator updated their profile');
         set_flash('success', 'Profile updated successfully.');
-        redirect('admin/profile.php');
+        redirect('admin/profile.php?tab=account');
     }
 }
 
 // ---- Change password ----
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['form'] ?? '') === 'password') {
     verify_csrf($_POST['csrf_token'] ?? '');
+    $activeTab = 'security';
 
     $current = $_POST['current_password'] ?? '';
     $new     = $_POST['new_password'] ?? '';
@@ -80,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['form'] ?? '') === 'passwor
 
         log_audit($conn, $_SESSION['user_id'], 'change_password', 'Administrator changed their password');
         set_flash('success', 'Password changed successfully.');
-        redirect('admin/profile.php');
+        redirect('admin/profile.php?tab=security');
     }
 }
 
@@ -94,41 +102,58 @@ $_SESSION['email'] = $me['email']; // keep session aware of login email for the 
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
-<!-- 1. Deli-Prop Sub-Header Bar -->
-<div class="sub-header-bar">
-    <div>
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--color-primary);margin-bottom:2px;">Account Center</div>
-        <h2 style="font-size:18px;margin:0 0 4px;font-weight:700;">Administrator Profile &amp; Security</h2>
-        <div style="font-size:13px;color:var(--color-text-muted);">Manage your system administrator profile information, recovery email address, and authentication keys.</div>
-    </div>
-    <div class="action-controls-group">
-        <span class="badge badge-primary" style="font-size:12px;padding:6px 12px;">
-            <i data-lucide="shield-check" style="width:14px;height:14px;margin-right:4px;"></i>
-            Master Administrator
-        </span>
-    </div>
-</div>
+<!-- Centered Profile Layout Container -->
+<div style="max-width:920px;margin:0 auto;width:100%;">
 
-<?php if (!empty($errors)): ?>
-    <div class="alert alert-danger" style="margin-bottom:18px;">
-        <i data-lucide="alert-circle" style="width:16px;height:16px;flex-shrink:0;"></i>
-        <ul style="margin:0;padding-left:18px;"><?php foreach ($errors as $e): ?><li><?= clean($e) ?></li><?php endforeach; ?></ul>
+    <!-- 1. Deli-Prop Sub-Header Bar -->
+    <div class="sub-header-bar">
+        <div>
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--color-primary);margin-bottom:2px;">Account Center</div>
+            <h2 style="font-size:18px;margin:0 0 4px;font-weight:700;">Administrator Profile &amp; Security</h2>
+            <div style="font-size:13px;color:var(--color-text-muted);">Manage your system administrator profile information, recovery email address, and authentication keys.</div>
+        </div>
+        <div class="action-controls-group">
+            <span class="badge badge-primary" style="font-size:12px;padding:6px 12px;">
+                <i data-lucide="shield-check" style="width:14px;height:14px;margin-right:4px;"></i>
+                Master Administrator
+            </span>
+        </div>
     </div>
-<?php endif; ?>
 
-<div class="grid-2">
-    <!-- 1. Profile Information Card -->
+    <!-- 2. Segmented Navigation Tabs (Personal Information vs Password & Security) -->
+    <div class="filter-card" style="margin-bottom:20px;padding:6px;border-radius:var(--radius-lg);background:var(--color-surface);border:1px solid var(--color-border);">
+        <div class="segmented-control" style="display:flex;gap:4px;border:none;background:transparent;padding:0;">
+            <a href="?tab=account" class="segment-btn <?= $activeTab === 'account' ? 'active' : '' ?>" style="flex:1;justify-content:center;padding:10px 16px;font-size:13.5px;font-weight:600;display:inline-flex;align-items:center;gap:8px;">
+                <i data-lucide="user" style="width:16px;height:16px;"></i>
+                Personal Information
+            </a>
+            <a href="?tab=security" class="segment-btn <?= $activeTab === 'security' ? 'active' : '' ?>" style="flex:1;justify-content:center;padding:10px 16px;font-size:13.5px;font-weight:600;display:inline-flex;align-items:center;gap:8px;">
+                <i data-lucide="key-round" style="width:16px;height:16px;"></i>
+                Password &amp; Security
+            </a>
+        </div>
+    </div>
+
+    <?php if (!empty($errors)): ?>
+        <div class="alert alert-danger" style="margin-bottom:18px;">
+            <i data-lucide="alert-circle" style="width:16px;height:16px;flex-shrink:0;"></i>
+            <ul style="margin:0;padding-left:18px;"><?php foreach ($errors as $e): ?><li><?= clean($e) ?></li><?php endforeach; ?></ul>
+        </div>
+    <?php endif; ?>
+
+    <?php if ($activeTab === 'account'): ?>
+    <!-- TAB 1: Profile Information Card -->
     <div class="card" style="box-shadow:var(--shadow-sm);border:1px solid var(--color-border);border-radius:var(--radius-lg);">
         <div class="card-header" style="padding:16px 20px;border-bottom:1px solid var(--color-border);background:var(--color-surface);display:flex;align-items:center;gap:10px;">
             <div style="width:34px;height:34px;border-radius:10px;background:var(--color-primary-50);color:var(--color-primary-600);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                 <i data-lucide="user" style="width:18px;height:18px;"></i>
             </div>
             <div>
-                <h3 style="font-size:15px;margin:0;font-weight:700;">Administrator Profile</h3>
+                <h3 style="font-size:15px;margin:0;font-weight:700;">Personal Information</h3>
                 <div style="font-size:12px;color:var(--color-text-muted);">Manage your name, primary contact, and recovery mailbox.</div>
             </div>
         </div>
-        <div class="card-body" style="padding:22px;">
+        <div class="card-body" style="padding:24px;">
             <form method="POST">
                 <?php csrf_field(); ?>
                 <input type="hidden" name="form" value="profile">
@@ -158,7 +183,7 @@ require_once __DIR__ . '/../includes/header.php';
 
                 <div class="form-group">
                     <div class="form-label-row">
-                        <label class="form-label">Login Identifier / Email</label>
+                        <label class="form-label">Institutional Login Email</label>
                         <span class="optional-badge">System Key</span>
                     </div>
                     <div class="input-icon-wrap has-left-icon">
@@ -186,7 +211,7 @@ require_once __DIR__ . '/../includes/header.php';
                     </div>
                 </div>
 
-                <div class="form-group" style="margin-bottom:20px;">
+                <div class="form-group" style="margin-bottom:24px;">
                     <div class="form-label-row">
                         <label class="form-label">Contact Hotline / Mobile</label>
                         <span class="optional-badge">Optional</span>
@@ -197,7 +222,7 @@ require_once __DIR__ . '/../includes/header.php';
                     </div>
                 </div>
 
-                <button type="submit" class="btn btn-primary" style="padding:9px 20px;">
+                <button type="submit" class="btn btn-primary" style="padding:9px 24px;">
                     <i data-lucide="check" style="width:14px;height:14px;"></i>
                     Save Profile Changes
                 </button>
@@ -205,18 +230,19 @@ require_once __DIR__ . '/../includes/header.php';
         </div>
     </div>
 
-    <!-- 2. Security & Password Update Card -->
+    <?php elseif ($activeTab === 'security'): ?>
+    <!-- TAB 2: Security & Password Update Card -->
     <div class="card" id="password" style="box-shadow:var(--shadow-sm);border:1px solid var(--color-border);border-radius:var(--radius-lg);">
         <div class="card-header" style="padding:16px 20px;border-bottom:1px solid var(--color-border);background:var(--color-surface);display:flex;align-items:center;gap:10px;">
             <div style="width:34px;height:34px;border-radius:10px;background:var(--color-warning-bg);color:var(--color-warning);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                 <i data-lucide="key-round" style="width:18px;height:18px;"></i>
             </div>
             <div>
-                <h3 style="font-size:15px;margin:0;font-weight:700;">Authentication &amp; Password</h3>
+                <h3 style="font-size:15px;margin:0;font-weight:700;">Password Management</h3>
                 <div style="font-size:12px;color:var(--color-text-muted);">Change your administrator master password securely.</div>
             </div>
         </div>
-        <div class="card-body" style="padding:22px;">
+        <div class="card-body" style="padding:24px;">
             <form method="POST">
                 <?php csrf_field(); ?>
                 <input type="hidden" name="form" value="password">
@@ -268,7 +294,7 @@ require_once __DIR__ . '/../includes/header.php';
                 </div>
 
                 <!-- Confirm Password with live match validator -->
-                <div class="form-group" style="margin-bottom:20px;">
+                <div class="form-group" style="margin-bottom:24px;">
                     <label class="form-label" for="profileConfirmPass">
                         Confirm New Password
                         <span class="required-mark" aria-hidden="true">*</span>
@@ -292,13 +318,15 @@ require_once __DIR__ . '/../includes/header.php';
                     </div>
                 </div>
 
-                <button type="submit" class="btn btn-warning" style="padding:9px 20px;">
+                <button type="submit" class="btn btn-warning" style="padding:9px 24px;">
                     <i data-lucide="shield-check" style="width:14px;height:14px;"></i>
                     Update Master Password
                 </button>
             </form>
         </div>
     </div>
-</div>
+    <?php endif; ?>
+
+</div><!-- /.max-width container -->
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

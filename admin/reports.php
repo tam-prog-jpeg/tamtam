@@ -18,15 +18,20 @@ $currentPage = 'reports';
 
 $status    = sanitize_input($_GET['status'] ?? '');
 $typeId    = (int) ($_GET['type_id'] ?? 0);
-$collegeId = (int) ($_GET['college_id'] ?? 0);
 $deptId    = (int) ($_GET['department_id'] ?? 0);
 $dateFrom  = sanitize_input($_GET['date_from'] ?? '');
 $dateTo    = sanitize_input($_GET['date_to'] ?? '');
 
+// Auto-swap dates if inverted
+if ($dateFrom !== '' && $dateTo !== '' && $dateFrom > $dateTo) {
+    $tempD = $dateFrom;
+    $dateFrom = $dateTo;
+    $dateTo = $tempD;
+}
+
 $where = []; $types = ''; $params = [];
 if ($status !== '')   { $where[] = "a.status = ?"; $types .= 's'; $params[] = $status; }
 if ($typeId > 0)      { $where[] = "a.type_id = ?"; $types .= 'i'; $params[] = $typeId; }
-if ($collegeId > 0)   { $where[] = "a.college_id = ?"; $types .= 'i'; $params[] = $collegeId; }
 if ($deptId > 0)      { $where[] = "a.department_id = ?"; $types .= 'i'; $params[] = $deptId; }
 if ($dateFrom !== '') { $where[] = "DATE(a.submitted_at) >= ?"; $types .= 's'; $params[] = $dateFrom; }
 if ($dateTo !== '')   { $where[] = "DATE(a.submitted_at) <= ?"; $types .= 's'; $params[] = $dateTo; }
@@ -67,8 +72,18 @@ $listStmt = mysqli_prepare($conn, "
 $applications = bind_execute($listStmt, $types, $params);
 
 $types_lookup       = mysqli_query($conn, "SELECT type_id, type_name FROM application_types ORDER BY type_name");
-$colleges_lookup    = mysqli_query($conn, "SELECT college_id, college_name FROM colleges ORDER BY college_name");
-$departments_lookup = mysqli_query($conn, "SELECT department_id, department_name FROM departments ORDER BY department_name");
+
+$deptQuery = mysqli_query($conn, "
+    SELECT d.department_id, d.department_name, c.college_name
+    FROM departments d
+    LEFT JOIN colleges c ON c.college_id = d.college_id
+    ORDER BY c.college_name, d.department_name
+");
+$groupedDepartments = [];
+while ($row = mysqli_fetch_assoc($deptQuery)) {
+    $colName = $row['college_name'] ?: 'General Administration & Offices';
+    $groupedDepartments[$colName][] = $row;
+}
 
 $queryString = http_build_query($_GET);
 
@@ -238,25 +253,20 @@ require_once __DIR__ . '/../includes/report_period_picker.php';
                     </select>
                 </div>
 
-                <!-- College Filter -->
+                <!-- Office / Department Filter -->
                 <div class="form-group" style="margin-bottom:0;">
-                    <label class="form-label-eyebrow">College</label>
-                    <select name="college_id" class="form-control form-select">
-                        <option value="0">All Colleges</option>
-                        <?php while ($c = mysqli_fetch_assoc($colleges_lookup)): ?>
-                            <option value="<?= $c['college_id'] ?>" <?= $collegeId === (int)$c['college_id'] ? 'selected' : '' ?>><?= clean($c['college_name']) ?></option>
-                        <?php endwhile; ?>
-                    </select>
-                </div>
-
-                <!-- Department Filter -->
-                <div class="form-group" style="margin-bottom:0;">
-                    <label class="form-label-eyebrow">Department</label>
+                    <label class="form-label-eyebrow">Office / Department</label>
                     <select name="department_id" class="form-control form-select">
-                        <option value="0">All Departments</option>
-                        <?php while ($d = mysqli_fetch_assoc($departments_lookup)): ?>
-                            <option value="<?= $d['department_id'] ?>" <?= $deptId === (int)$d['department_id'] ? 'selected' : '' ?>><?= clean($d['department_name']) ?></option>
-                        <?php endwhile; ?>
+                        <option value="0">All Offices &amp; Departments</option>
+                        <?php foreach ($groupedDepartments as $colName => $deptItems): ?>
+                            <optgroup label="<?= clean($colName) ?>">
+                                <?php foreach ($deptItems as $d): ?>
+                                    <option value="<?= $d['department_id'] ?>" <?= $deptId === (int)$d['department_id'] ? 'selected' : '' ?>>
+                                        <?= clean($d['department_name']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </optgroup>
+                        <?php endforeach; ?>
                     </select>
                 </div>
 
@@ -318,7 +328,7 @@ require_once __DIR__ . '/../includes/report_period_picker.php';
                 <i data-lucide="file-spreadsheet" style="width:40px;height:40px;color:var(--color-text-subtle);margin-bottom:12px;"></i>
                 <h4 style="margin:0 0 6px;font-size:16px;color:var(--color-text);">No applications found</h4>
                 <p style="margin:0;font-size:13px;color:var(--color-text-muted);">No intellectual property applications match your selected filters.</p>
-                <?php if ($status !== '' || $typeId > 0 || $collegeId > 0 || $deptId > 0 || $dateFrom !== '' || $dateTo !== ''): ?>
+                <?php if ($status !== '' || $typeId > 0 || $deptId > 0 || $dateFrom !== '' || $dateTo !== ''): ?>
                     <a href="<?= BASE_URL ?>admin/reports.php" class="btn btn-outline btn-sm" style="margin-top:14px;">Clear Active Filters</a>
                 <?php endif; ?>
             </div>
@@ -329,7 +339,7 @@ require_once __DIR__ . '/../includes/report_period_picker.php';
                     <th style="width:140px;">Tracking Code</th>
                     <th>Title &amp; Type</th>
                     <th>Applicant</th>
-                    <th>College / Department</th>
+                    <th>Office / Department</th>
                     <th style="width:130px;">Status</th>
                     <th style="width:120px;">Submitted</th>
                     <th style="text-align:right;width:90px;">Action</th>
@@ -348,10 +358,12 @@ require_once __DIR__ . '/../includes/report_period_picker.php';
                     <td>
                         <div style="font-weight:500;color:var(--color-text);"><?= clean($a['first_name'] . ' ' . $a['last_name']) ?></div>
                     </td>
-                    <td style="font-size:12.5px;color:var(--color-text-muted);">
-                        <div style="font-weight:500;color:var(--color-text);"><?= clean($a['college_name'] ?? '—') ?></div>
-                        <?php if (!empty($a['department_name'])): ?>
-                            <div style="font-size:11.5px;color:var(--color-text-subtle);"><?= clean($a['department_name']) ?></div>
+                    <td>
+                        <div style="font-size:12.5px;font-weight:600;color:var(--color-text);">
+                            <?= clean($a['department_name'] ?: ($a['college_name'] ?? '—')) ?>
+                        </div>
+                        <?php if ($a['department_name'] && $a['college_name']): ?>
+                            <div style="font-size:11px;color:var(--color-text-muted);"><?= clean($a['college_name']) ?></div>
                         <?php endif; ?>
                     </td>
                     <td>

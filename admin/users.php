@@ -222,16 +222,7 @@ require_once __DIR__ . '/../includes/header.php';
         <div class="kpi-middle">
             <div class="kpi-value"><?= number_format((int)$kpiStats['total_all']) ?></div>
             <div class="kpi-spark">
-                <svg class="sparkline-svg" viewBox="0 0 80 24" preserveAspectRatio="none">
-                    <defs>
-                        <linearGradient id="grad-blue-usr" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stop-color="#2563EB" stop-opacity="0.3"/>
-                            <stop offset="100%" stop-color="#2563EB" stop-opacity="0.0"/>
-                        </linearGradient>
-                    </defs>
-                    <path d="M0 18 Q 20 8, 40 14 T 80 6 L 80 24 L 0 24 Z" fill="url(#grad-blue-usr)"/>
-                    <path d="M0 18 Q 20 8, 40 14 T 80 6" fill="none" stroke="#2563EB" stroke-width="2"/>
-                </svg>
+                <?= render_kpi_sparkline((int)$kpiStats['total_all'], 'blue', null, 'sparkline-svg') ?>
             </div>
         </div>
         <div class="kpi-bottom">
@@ -248,16 +239,7 @@ require_once __DIR__ . '/../includes/header.php';
         <div class="kpi-middle">
             <div class="kpi-value" style="color:var(--color-primary-600);"><?= number_format((int)$kpiStats['total_admin_staff']) ?></div>
             <div class="kpi-spark">
-                <svg class="sparkline-svg" viewBox="0 0 80 24" preserveAspectRatio="none">
-                    <defs>
-                        <linearGradient id="grad-cyan-usr" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stop-color="#06B6D4" stop-opacity="0.3"/>
-                            <stop offset="100%" stop-color="#06B6D4" stop-opacity="0.0"/>
-                        </linearGradient>
-                    </defs>
-                    <path d="M0 20 Q 25 10, 50 14 T 80 4 L 80 24 L 0 24 Z" fill="url(#grad-cyan-usr)"/>
-                    <path d="M0 20 Q 25 10, 50 14 T 80 4" fill="none" stroke="#06B6D4" stroke-width="2"/>
-                </svg>
+                <?= render_kpi_sparkline((int)$kpiStats['total_admin_staff'], 'cyan', null, 'sparkline-svg') ?>
             </div>
         </div>
         <div class="kpi-bottom">
@@ -274,16 +256,7 @@ require_once __DIR__ . '/../includes/header.php';
         <div class="kpi-middle">
             <div class="kpi-value" style="color:var(--color-purple);"><?= number_format((int)$kpiStats['total_evaluators']) ?></div>
             <div class="kpi-spark">
-                <svg class="sparkline-svg" viewBox="0 0 80 24" preserveAspectRatio="none">
-                    <defs>
-                        <linearGradient id="grad-purple-usr" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stop-color="#8B5CF6" stop-opacity="0.3"/>
-                            <stop offset="100%" stop-color="#8B5CF6" stop-opacity="0.0"/>
-                        </linearGradient>
-                    </defs>
-                    <path d="M0 16 Q 25 6, 50 12 T 80 8 L 80 24 L 0 24 Z" fill="url(#grad-purple-usr)"/>
-                    <path d="M0 16 Q 25 6, 50 12 T 80 8" fill="none" stroke="#8B5CF6" stroke-width="2"/>
-                </svg>
+                <?= render_kpi_sparkline((int)$kpiStats['total_evaluators'], 'purple', null, 'sparkline-svg') ?>
             </div>
         </div>
         <div class="kpi-bottom">
@@ -300,20 +273,15 @@ require_once __DIR__ . '/../includes/header.php';
         <div class="kpi-middle">
             <div class="kpi-value" style="color:var(--color-danger);"><?= number_format((int)$kpiStats['total_inactive']) ?></div>
             <div class="kpi-spark">
-                <svg class="sparkline-svg" viewBox="0 0 80 24" preserveAspectRatio="none">
-                    <defs>
-                        <linearGradient id="grad-red-usr" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stop-color="#EF4444" stop-opacity="0.3"/>
-                            <stop offset="100%" stop-color="#EF4444" stop-opacity="0.0"/>
-                        </linearGradient>
-                    </defs>
-                    <path d="M0 22 Q 30 18, 55 10 T 80 2 L 80 24 L 0 24 Z" fill="url(#grad-red-usr)"/>
-                    <path d="M0 22 Q 30 18, 55 10 T 80 2" fill="none" stroke="#EF4444" stroke-width="2"/>
-                </svg>
+                <?= render_kpi_sparkline((int)$kpiStats['total_inactive'], 'red', null, 'sparkline-svg') ?>
             </div>
         </div>
         <div class="kpi-bottom">
-            <span class="kpi-trend trend-neutral">Locked access</span>
+            <?php if ((int)$kpiStats['total_inactive'] === 0): ?>
+                <span class="kpi-trend trend-up" style="color:var(--color-success);"><i data-lucide="shield-check" style="width:13px;height:13px;"></i> 0 locked • All active</span>
+            <?php else: ?>
+                <span class="kpi-trend trend-down" style="color:var(--color-danger);"><i data-lucide="alert-triangle" style="width:13px;height:13px;"></i> <?= (int)$kpiStats['total_inactive'] ?> accounts restricted</span>
+            <?php endif; ?>
         </div>
     </div>
 </div>

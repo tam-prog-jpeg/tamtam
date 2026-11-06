@@ -18,6 +18,8 @@ $flash = get_flash();
     window.FLASH = <?= json_encode($flash) ?>;
 </script>
 <?php endif; ?>
+<!-- Chart.js 4 (Global for KPI & Analytics Dashboards) -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="<?= BASE_URL ?>assets/js/main.js?v=<?= @filemtime(__DIR__ . '/../assets/js/main.js') ?: time() ?>"></script>
 <?php if (!empty($extraScripts)): foreach ($extraScripts as $script): ?>
 <script src="<?= BASE_URL . $script ?>?v=<?= @filemtime(__DIR__ . '/../' . $script) ?: time() ?>"></script>

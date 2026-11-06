@@ -16,13 +16,24 @@ $pageTitle   = 'Applicant Records';
 $currentPage = 'applicants';
 
 $search  = sanitize_input($_GET['q'] ?? '');
+$type    = sanitize_input($_GET['type'] ?? '');
 $page    = max(1, (int) ($_GET['page'] ?? 1));
 $perPage = 10;
+
+// Classification Counts for Toolbar Tabs
+$allCount     = (int) (mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) c FROM applicants"))['c'] ?? 0);
+$facultyCount = (int) (mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) c FROM applicants WHERE applicant_type = 'Faculty'"))['c'] ?? 0);
+$studentCount = (int) (mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) c FROM applicants WHERE applicant_type = 'Student'"))['c'] ?? 0);
 
 $where = []; $types = ''; $params = [];
 if ($search !== '') {
     $where[] = "(CONCAT(u.first_name,' ',u.last_name) LIKE ? OR u.email LIKE ? OR ap.applicant_type LIKE ?)";
     $like = "%$search%"; $types .= 'sss'; $params[] = $like; $params[] = $like; $params[] = $like;
+}
+if ($type !== '') {
+    $where[] = "ap.applicant_type = ?";
+    $types .= 's';
+    $params[] = $type;
 }
 $whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
 
@@ -78,32 +89,57 @@ require_once __DIR__ . '/../includes/header.php';
 </div>
 
 <!-- 2. Search & Filter Bar -->
-<div class="filter-card">
-    <div class="filter-row">
-        <form method="GET" style="display:flex;gap:10px;align-items:center;width:100%;max-width:540px;">
-            <div style="position:relative;flex:1;">
-                <i data-lucide="search" style="position:absolute;left:11px;top:10px;width:15px;height:15px;color:var(--color-text-muted);pointer-events:none;"></i>
-                <input type="text" name="q" class="form-control" placeholder="Search applicant by name, email, or classification…" value="<?= clean($search) ?>" style="padding-left:34px;height:38px;font-size:13px;">
-            </div>
-            <button type="submit" class="btn btn-primary btn-sm" style="height:38px;gap:6px;">
-                <i data-lucide="search" style="width:14px;height:14px;"></i> Search
-            </button>
-            <?php if ($search !== ''): ?>
-                <a href="<?= BASE_URL ?>staff/applicants.php" class="btn btn-outline btn-sm" style="height:38px;">Reset</a>
-            <?php endif; ?>
-        </form>
+<div class="staff-toolbar">
+    <div class="staff-toolbar-tabs" role="tablist">
+        <a href="<?= qsSA(['type' => '', 'page' => 1]) ?>" class="staff-tab-pill <?= $type === '' ? 'active' : '' ?>">
+            <i data-lucide="users" style="width:14px;height:14px;"></i>
+            <span>All Applicants</span>
+            <span class="staff-tab-count"><?= number_format($allCount) ?></span>
+        </a>
+        <a href="<?= qsSA(['type' => 'Faculty', 'page' => 1]) ?>" class="staff-tab-pill <?= $type === 'Faculty' ? 'active' : '' ?>">
+            <i data-lucide="graduation-cap" style="width:14px;height:14px;"></i>
+            <span>Faculty</span>
+            <span class="staff-tab-count"><?= number_format($facultyCount) ?></span>
+        </a>
+        <a href="<?= qsSA(['type' => 'Student', 'page' => 1]) ?>" class="staff-tab-pill <?= $type === 'Student' ? 'active' : '' ?>">
+            <i data-lucide="book-open" style="width:14px;height:14px;"></i>
+            <span>Student</span>
+            <span class="staff-tab-count"><?= number_format($studentCount) ?></span>
+        </a>
     </div>
+
+    <form method="GET" class="staff-search-form">
+        <?php if ($type !== ''): ?>
+            <input type="hidden" name="type" value="<?= clean($type) ?>">
+        <?php endif; ?>
+        <div class="staff-search-input-wrap">
+            <i data-lucide="search" class="staff-search-icon"></i>
+            <input type="text" name="q" class="staff-search-input" placeholder="Search applicant, email, college..." value="<?= clean($search) ?>" autocomplete="off">
+            <?php if ($search !== ''): ?>
+                <a href="<?= qsSA(['q' => '']) ?>" class="staff-search-clear" title="Clear search">&times;</a>
+            <?php endif; ?>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm staff-search-btn">
+            <i data-lucide="search" style="width:14px;height:14px;"></i> Search
+        </button>
+        <?php if ($search !== '' || $type !== ''): ?>
+            <a href="<?= BASE_URL ?>staff/applicants.php" class="btn btn-outline btn-sm staff-reset-btn" title="Reset all filters">
+                <i data-lucide="rotate-ccw" style="width:13px;height:13px;"></i> Reset
+            </a>
+        <?php endif; ?>
+    </form>
 </div>
 
 <!-- 3. Applicants Data Table -->
-<div class="card" style="box-shadow:var(--shadow-sm);border:1px solid var(--color-border);border-radius:var(--radius-lg);overflow:hidden;">
-    <div class="card-header" style="padding:14px 20px;border-bottom:1px solid var(--color-border);background:var(--color-surface);display:flex;justify-content:space-between;align-items:center;">
-        <div style="display:flex;align-items:center;gap:8px;">
-            <i data-lucide="folder-users" style="width:16px;height:16px;color:var(--color-primary);"></i>
-            <h3 style="font-size:15px;margin:0;font-weight:600;">Applicant Records</h3>
+<div class="staff-table-card">
+    <div class="card-header">
+        <div style="display:flex;align-items:center;gap:10px;">
+            <i data-lucide="folder-users" style="width:18px;height:18px;color:var(--color-primary-600);"></i>
+            <h3 style="font-size:15px;margin:0;font-weight:700;">Applicant Registry</h3>
+            <span class="badge badge-secondary tabular" style="font-size:11px;font-weight:700;"><?= number_format($totalRows) ?> registered</span>
         </div>
         <div style="font-size:12px;color:var(--color-text-muted);">
-            Showing <?= (int) $totalRows === 0 ? 0 : (($p['currentPage'] - 1) * $p['perPage'] + 1) ?>–<?= min($p['currentPage'] * $p['perPage'], $totalRows) ?>
+            Showing <?= (int) $totalRows === 0 ? 0 : (($p['currentPage'] - 1) * $p['perPage'] + 1) ?>–<?= min($p['currentPage'] * $p['perPage'], $totalRows) ?> of <?= number_format($totalRows) ?>
         </div>
     </div>
     <div class="table-wrap">
@@ -112,9 +148,9 @@ require_once __DIR__ . '/../includes/header.php';
                 <div style="width:48px;height:48px;border-radius:50%;background:var(--color-bg);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;color:var(--color-text-muted);">
                     <i data-lucide="user-x" style="width:24px;height:24px;"></i>
                 </div>
-                <div style="font-weight:600;font-size:14px;color:var(--color-text);margin-bottom:4px;">No applicants found</div>
-                <div style="font-size:12.5px;color:var(--color-text-muted);margin-bottom:12px;">Try adjusting your keyword query.</div>
-                <?php if ($search !== ''): ?>
+                <div style="font-weight:700;font-size:15px;color:var(--color-text);margin-bottom:4px;">No applicants found</div>
+                <div style="font-size:12.5px;color:var(--color-text-muted);margin-bottom:12px;">Try adjusting your keyword query or clearing the filter.</div>
+                <?php if ($search !== '' || $type !== ''): ?>
                     <a href="<?= BASE_URL ?>staff/applicants.php" class="btn btn-outline btn-sm">Clear Search</a>
                 <?php endif; ?>
             </div>
@@ -122,31 +158,50 @@ require_once __DIR__ . '/../includes/header.php';
         <table class="data-table">
             <thead>
                 <tr>
-                    <th>Applicant Name &amp; Contact</th>
-                    <th>Classification</th>
+                    <th style="width:250px;">Applicant Name &amp; Contact</th>
+                    <th style="width:140px;">Classification</th>
                     <th>College / Academic Unit</th>
-                    <th>Phone / Mobile</th>
-                    <th style="text-align:right;">Submissions</th>
+                    <th style="width:150px;">Phone / Mobile</th>
+                    <th style="width:120px;text-align:center;">Filings</th>
+                    <th style="width:130px;text-align:right;">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 <?php while ($a = mysqli_fetch_assoc($applicants)): ?>
                 <tr>
                     <td>
-                        <div style="font-weight:600;font-size:13.5px;color:var(--color-text);"><?= clean($a['first_name'] . ' ' . $a['last_name']) ?></div>
-                        <div style="font-size:11.5px;color:var(--color-text-muted);"><?= clean($a['email']) ?></div>
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <div class="user-avatar-initials">
+                                <?= strtoupper(substr($a['first_name'],0,1) . substr($a['last_name'],0,1)) ?>
+                            </div>
+                            <div>
+                                <div style="font-weight:600;font-size:13.5px;color:var(--color-text);"><?= clean($a['first_name'] . ' ' . $a['last_name']) ?></div>
+                                <div style="font-size:11.5px;color:var(--color-text-muted);"><?= clean($a['email']) ?></div>
+                            </div>
+                        </div>
                     </td>
                     <td>
-                        <span class="badge badge-info" style="font-size:11.5px;"><?= clean($a['applicant_type']) ?></span>
+                        <span class="badge <?= strtolower($a['applicant_type']) === 'faculty' ? 'badge-primary' : 'badge-info' ?>" style="font-size:11.5px;font-weight:600;">
+                            <i data-lucide="<?= strtolower($a['applicant_type']) === 'faculty' ? 'graduation-cap' : 'book-open' ?>" style="width:12px;height:12px;"></i>
+                            <?= clean($a['applicant_type']) ?>
+                        </span>
                     </td>
-                    <td style="font-size:12.5px;color:var(--color-text-muted);">
+                    <td style="font-size:12.5px;color:var(--color-text-muted);line-height:1.4;">
                         <?= clean($a['college_name'] ?? '—') ?><?= $a['department_name'] ? ' / ' . clean($a['department_name']) : '' ?>
                     </td>
-                    <td class="tabular" style="font-size:12.5px;">
+                    <td class="tabular" style="font-size:12.5px;color:var(--color-text);">
                         <?= clean($a['contact_number'] ?: '—') ?>
                     </td>
+                    <td style="text-align:center;">
+                        <span class="submission-count-badge <?= (int)$a['total_applications'] === 0 ? 'zero' : '' ?>">
+                            <?= (int) $a['total_applications'] ?>
+                        </span>
+                    </td>
                     <td style="text-align:right;">
-                        <span class="badge badge-secondary tabular" style="font-weight:600;"><?= (int) $a['total_applications'] ?></span>
+                        <a href="<?= BASE_URL ?>staff/verify.php?q=<?= urlencode($a['first_name'] . ' ' . $a['last_name']) ?>" class="btn btn-outline btn-sm" style="gap:4px;height:30px;font-size:12px;display:inline-flex;align-items:center;" title="View all applications submitted by this applicant">
+                            <i data-lucide="folder-open" style="width:12px;height:12px;"></i>
+                            Submissions
+                        </a>
                     </td>
                 </tr>
                 <?php endwhile; ?>

@@ -125,13 +125,13 @@ require_once __DIR__ . '/../includes/header.php';
                 </div>
 
                 <div style="display:flex;justify-content:space-between;align-items:start;font-size:13px;border-bottom:1px solid var(--color-border-subtle);padding-bottom:8px;">
-                    <span style="color:var(--color-text-muted);">College</span>
-                    <span style="font-weight:500;color:var(--color-text);text-align:right;max-width:60%;"><?= clean($applicant['college_name'] ?? '—') ?></span>
-                </div>
-
-                <div style="display:flex;justify-content:space-between;align-items:start;font-size:13px;border-bottom:1px solid var(--color-border-subtle);padding-bottom:8px;">
-                    <span style="color:var(--color-text-muted);">Department</span>
-                    <span style="font-weight:500;color:var(--color-text);text-align:right;max-width:60%;"><?= clean($applicant['department_name'] ?? '—') ?></span>
+                    <span style="color:var(--color-text-muted);">Office/Department</span>
+                    <span style="font-weight:500;color:var(--color-text);text-align:right;max-width:60%;">
+                        <?= clean($applicant['department_name'] ?: ($applicant['college_name'] ?? '—')) ?>
+                        <?php if ($applicant['department_name'] && $applicant['college_name']): ?>
+                            <div style="font-size:11px;color:var(--color-text-muted);"><?= clean($applicant['college_name']) ?></div>
+                        <?php endif; ?>
+                    </span>
                 </div>
 
                 <div style="display:flex;justify-content:space-between;align-items:start;font-size:13px;border-bottom:1px solid var(--color-border-subtle);padding-bottom:8px;">

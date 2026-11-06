@@ -38,6 +38,31 @@ $total    = count_my($conn, $applicantId);
 $pending  = count_my($conn, $applicantId, "AND status IN ('pending','under_review')");
 $approved = count_my($conn, $applicantId, "AND status = 'approved'");
 $rejected = count_my($conn, $applicantId, "AND status = 'rejected'");
+$returned = count_my($conn, $applicantId, "AND status = 'returned'");
+
+// Status breakdown for Chart.js Doughnut
+$myStatusBreakdown = [
+    'Approved & Certified'    => (int) $approved,
+    'Under Technical Review'  => (int) count_my($conn, $applicantId, "AND status = 'under_review'"),
+    'Pending Intake Review'   => (int) count_my($conn, $applicantId, "AND status = 'pending'"),
+    'Needs Revision'          => (int) $returned,
+    'Rejected'                => (int) $rejected,
+];
+
+// Category breakdown for Chart.js Bar Chart
+$myCategories = [];
+$myCatRes = mysqli_query($conn, "
+    SELECT t.type_name, COUNT(a.application_id) AS total_count
+    FROM application_types t
+    LEFT JOIN applications a ON a.type_id = t.type_id AND a.applicant_id = $applicantId
+    GROUP BY t.type_id, t.type_name
+    ORDER BY t.type_id ASC
+");
+if ($myCatRes) {
+    while ($row = mysqli_fetch_assoc($myCatRes)) {
+        $myCategories[$row['type_name']] = (int) $row['total_count'];
+    }
+}
 
 // ---- Recent applications ----
 $recentStmt = mysqli_prepare($conn, "
@@ -90,16 +115,7 @@ require_once __DIR__ . '/../includes/header.php';
         </div>
         <div class="kpi-card-main">
             <div class="kpi-card-value tabular"><?= number_format($total) ?></div>
-            <svg class="kpi-sparkline" viewBox="0 0 100 40" fill="none">
-                <defs>
-                    <linearGradient id="gradTotal" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stop-color="#2563EB" stop-opacity="0.25"/>
-                        <stop offset="100%" stop-color="#2563EB" stop-opacity="0.0"/>
-                    </linearGradient>
-                </defs>
-                <path d="M0,32 Q25,24 50,18 T100,8 L100,40 L0,40 Z" fill="url(#gradTotal)"/>
-                <path d="M0,32 Q25,24 50,18 T100,8" stroke="#2563EB" stroke-width="2.5" stroke-linecap="round"/>
-            </svg>
+            <?= render_kpi_sparkline($total, 'blue') ?>
         </div>
         <div class="kpi-card-footer">
             <i data-lucide="folder-check" style="width:13px;height:13px;"></i>
@@ -117,16 +133,7 @@ require_once __DIR__ . '/../includes/header.php';
         </div>
         <div class="kpi-card-main">
             <div class="kpi-card-value tabular"><?= number_format($pending) ?></div>
-            <svg class="kpi-sparkline" viewBox="0 0 100 40" fill="none">
-                <defs>
-                    <linearGradient id="gradPending" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stop-color="#EF4444" stop-opacity="0.25"/>
-                        <stop offset="100%" stop-color="#EF4444" stop-opacity="0.0"/>
-                    </linearGradient>
-                </defs>
-                <path d="M0,18 Q30,30 60,20 T100,28 L100,40 L0,40 Z" fill="url(#gradPending)"/>
-                <path d="M0,18 Q30,30 60,20 T100,28" stroke="#EF4444" stroke-width="2.5" stroke-linecap="round"/>
-            </svg>
+            <?= render_kpi_sparkline($pending, 'amber') ?>
         </div>
         <div class="kpi-card-footer">
             <i data-lucide="clock" style="width:13px;height:13px;color:var(--color-warning);"></i>
@@ -138,26 +145,17 @@ require_once __DIR__ . '/../includes/header.php';
     <div class="kpi-card">
         <div class="kpi-card-header">
             <span>Approved Applications</span>
-            <span class="info-icon" title="Applications granted final approval with downloadable certificates">
+            <span class="info-icon" title="Applications granted final executive approval and recorded in IP registry">
                 <i data-lucide="info" style="width:14px;height:14px;"></i>
             </span>
         </div>
         <div class="kpi-card-main">
             <div class="kpi-card-value tabular"><?= number_format($approved) ?></div>
-            <svg class="kpi-sparkline" viewBox="0 0 100 40" fill="none">
-                <defs>
-                    <linearGradient id="gradApproved" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stop-color="#10B981" stop-opacity="0.25"/>
-                        <stop offset="100%" stop-color="#10B981" stop-opacity="0.0"/>
-                    </linearGradient>
-                </defs>
-                <path d="M0,34 Q25,28 50,16 T100,4 L100,40 L0,40 Z" fill="url(#gradApproved)"/>
-                <path d="M0,34 Q25,28 50,16 T100,4" stroke="#10B981" stroke-width="2.5" stroke-linecap="round"/>
-            </svg>
+            <?= render_kpi_sparkline($approved, 'green') ?>
         </div>
         <div class="kpi-card-footer">
             <i data-lucide="check-circle" style="width:13px;height:13px;color:var(--color-success);"></i>
-            <span>Certificate ready</span>
+            <span>Registration Approved</span>
         </div>
     </div>
 
@@ -171,14 +169,55 @@ require_once __DIR__ . '/../includes/header.php';
         </div>
         <div class="kpi-card-main">
             <div class="kpi-card-value tabular"><?= number_format($rejected) ?></div>
-            <svg class="kpi-sparkline" viewBox="0 0 100 40" fill="none">
-                <path d="M0,20 Q30,32 60,22 T100,30 L100,40 L0,40 Z" fill="url(#gradPending)"/>
-                <path d="M0,20 Q30,32 60,22 T100,30" stroke="#EF4444" stroke-width="2.5" stroke-linecap="round"/>
-            </svg>
+            <?= render_kpi_sparkline($rejected, 'red') ?>
         </div>
         <div class="kpi-card-footer">
             <i data-lucide="alert-triangle" style="width:13px;height:13px;"></i>
             <span>Check remarks if returned</span>
+        </div>
+    </div>
+</div>
+
+<!-- =====================================================================
+     ANALYTICS SECTION: 2-COLUMN CHART.JS VISUALIZATIONS
+     ===================================================================== -->
+<div class="grid-2" style="margin-bottom:24px;">
+    <!-- Chart 1: My Application Status Breakdown Doughnut Chart -->
+    <div class="card" style="box-shadow:var(--shadow-sm);border:1px solid var(--color-border);border-radius:var(--radius-lg);">
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+            <div>
+                <h3 style="margin:0 0 2px;font-size:15px;font-weight:700;">My Application Status Overview</h3>
+                <span style="font-size:12px;color:var(--color-text-muted);">Current progress of all filings registered under your account</span>
+            </div>
+            <span class="badge badge-primary" style="font-size:11px;"><?= $total ?> Applications</span>
+        </div>
+        <div class="card-body" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:18px 20px;">
+            <div style="position:relative;height:200px;width:100%;max-width:260px;">
+                <canvas id="applicantStatusDoughnut"></canvas>
+            </div>
+            <div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:8px 12px;justify-content:center;font-size:11.5px;color:var(--color-text-muted);">
+                <span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#10B981;"></span> Approved (<?= $myStatusBreakdown['Approved & Certified'] ?>)</span>
+                <span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#2563EB;"></span> In Review (<?= $myStatusBreakdown['Under Technical Review'] ?>)</span>
+                <span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#F59E0B;"></span> Pending (<?= $myStatusBreakdown['Pending Intake Review'] ?>)</span>
+                <span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#F97316;"></span> Revision (<?= $myStatusBreakdown['Needs Revision'] ?>)</span>
+                <span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#EF4444;"></span> Rejected (<?= $myStatusBreakdown['Rejected'] ?>)</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart 2: My IP Filings by Category Bar Chart -->
+    <div class="card" style="box-shadow:var(--shadow-sm);border:1px solid var(--color-border);border-radius:var(--radius-lg);">
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+            <div>
+                <h3 style="margin:0 0 2px;font-size:15px;font-weight:700;">My Portfolio by IP Category</h3>
+                <span style="font-size:12px;color:var(--color-text-muted);">Classification distribution of your intellectual property submissions</span>
+            </div>
+            <span class="badge badge-info" style="font-size:11px;">Category Portfolio</span>
+        </div>
+        <div class="card-body" style="padding:18px 20px;">
+            <div style="position:relative;height:240px;width:100%;">
+                <canvas id="applicantCategoryChart"></canvas>
+            </div>
         </div>
     </div>
 </div>
@@ -253,5 +292,103 @@ require_once __DIR__ . '/../includes/header.php';
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // 1. My Application Status Overview Doughnut Chart
+    const statusCanvas = document.getElementById('applicantStatusDoughnut');
+    if (statusCanvas) {
+        new Chart(statusCanvas, {
+            type: 'doughnut',
+            data: {
+                labels: <?= json_encode(array_keys($myStatusBreakdown)) ?>,
+                datasets: [{
+                    data: <?= json_encode(array_values($myStatusBreakdown)) ?>,
+                    backgroundColor: ['#10B981', '#2563EB', '#F59E0B', '#F97316', '#EF4444'],
+                    borderWidth: 2,
+                    borderColor: '#FFFFFF',
+                    hoverOffset: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '68%',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#FFFFFF',
+                        titleColor: '#111827',
+                        bodyColor: '#4B5563',
+                        borderColor: '#EAECF0',
+                        borderWidth: 1,
+                        padding: 10,
+                        cornerRadius: 8,
+                        titleFont: { family: 'Plus Jakarta Sans', weight: '700', size: 12 },
+                        bodyFont: { family: 'Inter', size: 12 },
+                        callbacks: {
+                            label: function(ctx) {
+                                return ' ' + ctx.label + ': ' + ctx.parsed + ' applications';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // 2. Category Portfolio Bar Chart
+    const catCanvas = document.getElementById('applicantCategoryChart');
+    if (catCanvas) {
+        new Chart(catCanvas, {
+            type: 'bar',
+            data: {
+                labels: <?= json_encode(array_keys($myCategories)) ?>,
+                datasets: [{
+                    label: 'Applications',
+                    data: <?= json_encode(array_values($myCategories)) ?>,
+                    backgroundColor: '#2563EB',
+                    borderRadius: 6,
+                    maxBarThickness: 32
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#FFFFFF',
+                        titleColor: '#111827',
+                        bodyColor: '#4B5563',
+                        borderColor: '#EAECF0',
+                        borderWidth: 1,
+                        padding: 10,
+                        cornerRadius: 8,
+                        titleFont: { family: 'Plus Jakarta Sans', weight: '700', size: 12 },
+                        bodyFont: { family: 'Inter', size: 12 },
+                        callbacks: {
+                            label: function(ctx) {
+                                return ' ' + ctx.dataset.label + ': ' + ctx.parsed.y + ' applications';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { font: { family: 'Inter', size: 11 }, color: '#6B7280' }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: '#F2F4F7' },
+                        ticks: { precision: 0, font: { family: 'Inter', size: 11 }, color: '#6B7280' }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

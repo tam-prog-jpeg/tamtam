@@ -56,7 +56,7 @@ mysqli_stmt_close($countStmt);
 $p = paginate($totalRows, $perPage, $page);
 
 $listStmt = mysqli_prepare($conn, "
-    SELECT a.application_id, a.tracking_code, a.title, a.status, a.submitted_at, t.type_name
+    SELECT a.application_id, a.tracking_code, a.title, a.status, a.submitted_at, a.custom_category, t.type_name
     FROM applications a JOIN application_types t ON t.type_id = a.type_id
     $whereSql
     ORDER BY a.submitted_at DESC
@@ -78,7 +78,7 @@ require_once __DIR__ . '/../includes/header.php';
 <div class="sub-header-bar">
     <div class="sub-header-left">
         <h2>My Applications Directory</h2>
-        <p>Monitor your filed IP disclosures, documentary revisions, and final evaluation certificates.</p>
+        <p>Monitor your filed IP disclosures, documentary revisions, and formal evaluations.</p>
     </div>
     <div class="sub-header-actions">
         <a href="<?= BASE_URL ?>applicant/submit_application.php" class="btn btn-primary" title="File a new IP Application">
@@ -99,16 +99,7 @@ require_once __DIR__ . '/../includes/header.php';
         </div>
         <div class="kpi-card-main">
             <div class="kpi-card-value tabular"><?= number_format($kpiTotal) ?></div>
-            <svg class="kpi-sparkline" viewBox="0 0 100 40" fill="none">
-                <defs>
-                    <linearGradient id="spkAppTotal" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stop-color="#2563EB" stop-opacity="0.25"/>
-                        <stop offset="100%" stop-color="#2563EB" stop-opacity="0.0"/>
-                    </linearGradient>
-                </defs>
-                <path d="M0,32 Q25,24 50,18 T100,8 L100,40 L0,40 Z" fill="url(#spkAppTotal)"/>
-                <path d="M0,32 Q25,24 50,18 T100,8" stroke="#2563EB" stroke-width="2.5" stroke-linecap="round"/>
-            </svg>
+            <?= render_kpi_sparkline($kpiTotal, 'blue') ?>
         </div>
         <div class="kpi-card-footer">
             <i data-lucide="folder-check" style="width:13px;height:13px;color:var(--color-primary-600);"></i>
@@ -125,16 +116,7 @@ require_once __DIR__ . '/../includes/header.php';
         </div>
         <div class="kpi-card-main">
             <div class="kpi-card-value tabular"><?= number_format($kpiPending) ?></div>
-            <svg class="kpi-sparkline" viewBox="0 0 100 40" fill="none">
-                <defs>
-                    <linearGradient id="spkAppPending" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stop-color="#F59E0B" stop-opacity="0.25"/>
-                        <stop offset="100%" stop-color="#F59E0B" stop-opacity="0.0"/>
-                    </linearGradient>
-                </defs>
-                <path d="M0,22 Q25,32 50,18 T100,10 L100,40 L0,40 Z" fill="url(#spkAppPending)"/>
-                <path d="M0,22 Q25,32 50,18 T100,10" stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round"/>
-            </svg>
+            <?= render_kpi_sparkline($kpiPending, 'amber') ?>
         </div>
         <div class="kpi-card-footer">
             <i data-lucide="clock" style="width:13px;height:13px;color:var(--color-warning);"></i>
@@ -144,101 +126,107 @@ require_once __DIR__ . '/../includes/header.php';
 
     <div class="kpi-card">
         <div class="kpi-card-header">
-            <span>Approved &amp; Certified</span>
-            <span class="info-icon" title="Applications granted official approval with downloadable certificate">
+            <span>Approved Applications</span>
+            <span class="info-icon" title="Applications granted official approval and recorded in registry">
                 <i data-lucide="info" style="width:14px;height:14px;"></i>
             </span>
         </div>
         <div class="kpi-card-main">
             <div class="kpi-card-value tabular"><?= number_format($kpiApproved) ?></div>
-            <svg class="kpi-sparkline" viewBox="0 0 100 40" fill="none">
-                <defs>
-                    <linearGradient id="spkAppApproved" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stop-color="#10B981" stop-opacity="0.25"/>
-                        <stop offset="100%" stop-color="#10B981" stop-opacity="0.0"/>
-                    </linearGradient>
-                </defs>
-                <path d="M0,34 Q25,28 50,16 T100,4 L100,40 L0,40 Z" fill="url(#spkAppApproved)"/>
-                <path d="M0,34 Q25,28 50,16 T100,4" stroke="#10B981" stroke-width="2.5" stroke-linecap="round"/>
-            </svg>
+            <?= render_kpi_sparkline($kpiApproved, 'green') ?>
         </div>
         <div class="kpi-card-footer">
-            <i data-lucide="check-circle-2" style="width:13px;height:13px;color:var(--color-success);"></i>
-            <span>Approved by IPO Director</span>
+            <i data-lucide="check-circle" style="width:13px;height:13px;color:var(--color-success);"></i>
+            <span>Registration Approved</span>
         </div>
     </div>
 
     <div class="kpi-card">
         <div class="kpi-card-header">
-            <span>Needs Revision</span>
-            <span class="info-icon" title="Applications returned for applicant corrections or additional documents">
+            <span>Returned / Rejected</span>
+            <span class="info-icon" title="Applications needing revisions or marked rejected">
                 <i data-lucide="info" style="width:14px;height:14px;"></i>
             </span>
         </div>
         <div class="kpi-card-main">
-            <div class="kpi-card-value tabular"><?= number_format($kpiReturned) ?></div>
-            <svg class="kpi-sparkline" viewBox="0 0 100 40" fill="none">
-                <defs>
-                    <linearGradient id="spkAppReturned" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stop-color="#EF4444" stop-opacity="0.25"/>
-                        <stop offset="100%" stop-color="#EF4444" stop-opacity="0.0"/>
-                    </linearGradient>
-                </defs>
-                <path d="M0,18 Q30,30 60,20 T100,28 L100,40 L0,40 Z" fill="url(#spkAppReturned)"/>
-                <path d="M0,18 Q30,30 60,20 T100,28" stroke="#EF4444" stroke-width="2.5" stroke-linecap="round"/>
-            </svg>
+            <div class="kpi-card-value tabular"><?= number_format($kpiReturned + $kpiRejected) ?></div>
+            <?= render_kpi_sparkline($kpiReturned + $kpiRejected, 'red') ?>
         </div>
         <div class="kpi-card-footer">
             <i data-lucide="alert-triangle" style="width:13px;height:13px;color:var(--color-danger);"></i>
-            <span>Action required on returned</span>
+            <span>Check remarks if returned</span>
         </div>
     </div>
 </div>
 
-<!-- 3. Deli-Prop Filter Row -->
-<div class="filter-controls-row">
-    <!-- Category Status Pills -->
-    <div class="category-pill-tabs">
-        <a href="<?= qs4(['status' => '']) ?>" class="category-pill <?= $status === '' ? 'active' : '' ?>">
-            All (<?= $kpiTotal ?>)
+<!-- 3. Modern Segmented Toolbar (Status Tabs + Live Search) -->
+<div class="staff-toolbar">
+    <div class="staff-toolbar-tabs" role="tablist">
+        <a href="<?= qs4(['status' => '', 'page' => 1]) ?>" class="staff-tab-pill <?= $status === '' ? 'active' : '' ?>">
+            <i data-lucide="layers" style="width:14px;height:14px;"></i>
+            <span>All</span>
+            <span class="staff-tab-count"><?= number_format($kpiTotal) ?></span>
         </a>
-        <a href="<?= qs4(['status' => 'pending']) ?>" class="category-pill <?= $status === 'pending' ? 'active' : '' ?>">
-            Pending (<?= count_applicant_apps($conn, $applicantId, "AND status = 'pending'") ?>)
+        <a href="<?= qs4(['status' => 'pending', 'page' => 1]) ?>" class="staff-tab-pill <?= $status === 'pending' ? 'active' : '' ?>">
+            <i data-lucide="clock" style="width:14px;height:14px;"></i>
+            <span>Pending</span>
+            <span class="staff-tab-count"><?= number_format(count_applicant_apps($conn, $applicantId, "AND status = 'pending'")) ?></span>
         </a>
-        <a href="<?= qs4(['status' => 'under_review']) ?>" class="category-pill <?= $status === 'under_review' ? 'active' : '' ?>">
-            Under Review (<?= count_applicant_apps($conn, $applicantId, "AND status = 'under_review'") ?>)
+        <a href="<?= qs4(['status' => 'under_review', 'page' => 1]) ?>" class="staff-tab-pill <?= $status === 'under_review' ? 'active' : '' ?>">
+            <i data-lucide="flask-conical" style="width:14px;height:14px;"></i>
+            <span>Under Review</span>
+            <span class="staff-tab-count"><?= number_format(count_applicant_apps($conn, $applicantId, "AND status = 'under_review'")) ?></span>
         </a>
-        <a href="<?= qs4(['status' => 'returned']) ?>" class="category-pill <?= $status === 'returned' ? 'active' : '' ?>">
-            Returned (<?= $kpiReturned ?>)
+        <a href="<?= qs4(['status' => 'returned', 'page' => 1]) ?>" class="staff-tab-pill <?= $status === 'returned' ? 'active' : '' ?>">
+            <i data-lucide="rotate-ccw" style="width:14px;height:14px;"></i>
+            <span>Returned</span>
+            <span class="staff-tab-count"><?= number_format($kpiReturned) ?></span>
         </a>
-        <a href="<?= qs4(['status' => 'approved']) ?>" class="category-pill <?= $status === 'approved' ? 'active' : '' ?>">
-            Approved (<?= $kpiApproved ?>)
+        <a href="<?= qs4(['status' => 'approved', 'page' => 1]) ?>" class="staff-tab-pill <?= $status === 'approved' ? 'active' : '' ?>">
+            <i data-lucide="check-circle-2" style="width:14px;height:14px;"></i>
+            <span>Approved</span>
+            <span class="staff-tab-count"><?= number_format($kpiApproved) ?></span>
         </a>
-        <a href="<?= qs4(['status' => 'rejected']) ?>" class="category-pill <?= $status === 'rejected' ? 'active' : '' ?>">
-            Rejected (<?= $kpiRejected ?>)
+        <a href="<?= qs4(['status' => 'rejected', 'page' => 1]) ?>" class="staff-tab-pill <?= $status === 'rejected' ? 'active' : '' ?>">
+            <i data-lucide="x-circle" style="width:14px;height:14px;"></i>
+            <span>Rejected</span>
+            <span class="staff-tab-count"><?= number_format($kpiRejected) ?></span>
         </a>
     </div>
 
-    <!-- Search Box -->
-    <form method="GET" class="search-input-pill" style="margin:0;">
-        <?php if ($status !== ''): ?><input type="hidden" name="status" value="<?= clean($status) ?>"><?php endif; ?>
-        <i data-lucide="search" style="width:16px;height:16px;color:var(--color-text-subtle);"></i>
-        <input type="text" name="q" placeholder="Search tracking # or title..." value="<?= clean($search) ?>">
-        <button type="submit" class="btn btn-primary btn-sm" style="height:38px;">Search</button>
+    <!-- Live Search Form -->
+    <form method="GET" class="staff-search-form">
+        <?php if ($status !== ''): ?>
+            <input type="hidden" name="status" value="<?= clean($status) ?>">
+        <?php endif; ?>
+        <div class="staff-search-input-wrap">
+            <i data-lucide="search" class="staff-search-icon"></i>
+            <input type="text" name="q" class="staff-search-input" placeholder="Search tracking # or title..." value="<?= clean($search) ?>" autocomplete="off">
+            <?php if ($search !== ''): ?>
+                <a href="<?= qs4(['q' => '']) ?>" class="staff-search-clear" title="Clear search">&times;</a>
+            <?php endif; ?>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm staff-search-btn">
+            <i data-lucide="search" style="width:14px;height:14px;"></i> Search
+        </button>
         <?php if ($search !== '' || $status !== ''): ?>
-            <a href="<?= BASE_URL ?>applicant/my_applications.php" class="btn btn-outline btn-sm" style="height:38px;padding:0 12px;">Reset</a>
+            <a href="<?= BASE_URL ?>applicant/my_applications.php" class="btn btn-outline btn-sm staff-reset-btn" title="Reset all filters">
+                <i data-lucide="rotate-ccw" style="width:13px;height:13px;"></i> Reset
+            </a>
         <?php endif; ?>
     </form>
 </div>
 
 <!-- 4. Applications Table Card -->
-<div class="card" style="border-radius:var(--radius-lg);">
-    <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;">
-        <div>
-            <h3 style="margin:0 0 2px;">Submissions Registry</h3>
-            <span style="font-size:12.5px;color:var(--color-text-muted);">
-                Displaying <?= (int)$totalRows ?> application<?= $totalRows === 1 ? '' : 's' ?> under your account
-            </span>
+<div class="staff-table-card">
+    <div class="card-header">
+        <div style="display:flex;align-items:center;gap:10px;">
+            <i data-lucide="folder-archive" style="width:18px;height:18px;color:var(--color-primary-600);"></i>
+            <h3 style="margin:0;font-size:15px;font-weight:700;">Submissions Registry</h3>
+            <span class="badge badge-secondary tabular" style="font-size:11px;font-weight:700;"><?= number_format($totalRows) ?> total</span>
+        </div>
+        <div style="font-size:12px;color:var(--color-text-muted);">
+            Showing <?= (int)$totalRows === 0 ? 0 : (($p['currentPage'] - 1) * $p['perPage'] + 1) ?>–<?= min($p['currentPage'] * $p['perPage'], $totalRows) ?> of <?= number_format($totalRows) ?>
         </div>
     </div>
     <div class="table-wrap">
@@ -283,7 +271,7 @@ require_once __DIR__ . '/../includes/header.php';
                     </td>
                     <td>
                         <span class="badge badge-secondary" style="font-weight:500;">
-                            <?= clean($a['type_name']) ?>
+                            <?= get_application_category_label($a) ?>
                         </span>
                     </td>
                     <td>

@@ -22,6 +22,29 @@ $approved = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) c FROM evalu
 $rejected = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) c FROM evaluations WHERE evaluator_id = $uid AND decision = 'rejected'"))['c'];
 $returned = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) c FROM evaluations WHERE evaluator_id = $uid AND decision = 'returned'"))['c'];
 
+// Category workload breakdown for Chart.js Bar Chart
+$evalCategories = [];
+$ecRes = mysqli_query($conn, "
+    SELECT t.type_name, COUNT(a.application_id) AS total_count
+    FROM application_types t
+    LEFT JOIN applications a ON a.type_id = t.type_id AND a.assigned_evaluator_id = $uid
+    GROUP BY t.type_id, t.type_name
+    ORDER BY t.type_id ASC
+");
+if ($ecRes) {
+    while ($row = mysqli_fetch_assoc($ecRes)) {
+        $evalCategories[$row['type_name']] = (int) $row['total_count'];
+    }
+}
+
+// Decision history breakdown for Chart.js Doughnut
+$evalDecisions = [
+    'Recommended Approval'  => (int) $approved,
+    'Awaiting My Decision'  => (int) $pending,
+    'Returned for Revision' => (int) $returned,
+    'Recommended Rejection' => (int) $rejected,
+];
+
 $queueStmt = mysqli_prepare($conn, "
     SELECT a.application_id, a.tracking_code, a.title, a.submitted_at, t.type_name, u.first_name, u.last_name
     FROM applications a
@@ -69,16 +92,7 @@ require_once __DIR__ . '/../includes/header.php';
         </div>
         <div class="kpi-card-main">
             <div class="kpi-card-value tabular"><?= number_format($pending) ?></div>
-            <svg class="kpi-sparkline" viewBox="0 0 100 40" fill="none">
-                <defs>
-                    <linearGradient id="evalGradWarning" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stop-color="#F59E0B" stop-opacity="0.25"/>
-                        <stop offset="100%" stop-color="#F59E0B" stop-opacity="0.0"/>
-                    </linearGradient>
-                </defs>
-                <path d="M0,22 Q25,32 50,18 T100,10 L100,40 L0,40 Z" fill="url(#evalGradWarning)"/>
-                <path d="M0,22 Q25,32 50,18 T100,10" stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round"/>
-            </svg>
+            <?= render_kpi_sparkline($pending, 'amber') ?>
         </div>
         <div class="kpi-card-footer">
             <i data-lucide="clock" style="width:13px;height:13px;color:var(--color-warning);"></i>
@@ -96,16 +110,7 @@ require_once __DIR__ . '/../includes/header.php';
         </div>
         <div class="kpi-card-main">
             <div class="kpi-card-value tabular"><?= number_format($approved) ?></div>
-            <svg class="kpi-sparkline" viewBox="0 0 100 40" fill="none">
-                <defs>
-                    <linearGradient id="evalGradGreen" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stop-color="#10B981" stop-opacity="0.25"/>
-                        <stop offset="100%" stop-color="#10B981" stop-opacity="0.0"/>
-                    </linearGradient>
-                </defs>
-                <path d="M0,34 Q25,26 50,16 T100,4 L100,40 L0,40 Z" fill="url(#evalGradGreen)"/>
-                <path d="M0,34 Q25,26 50,16 T100,4" stroke="#10B981" stroke-width="2.5" stroke-linecap="round"/>
-            </svg>
+            <?= render_kpi_sparkline($approved, 'green') ?>
         </div>
         <div class="kpi-card-footer">
             <i data-lucide="check-check" style="width:13px;height:13px;color:var(--color-success);"></i>
@@ -123,16 +128,7 @@ require_once __DIR__ . '/../includes/header.php';
         </div>
         <div class="kpi-card-main">
             <div class="kpi-card-value tabular"><?= number_format($rejected) ?></div>
-            <svg class="kpi-sparkline" viewBox="0 0 100 40" fill="none">
-                <defs>
-                    <linearGradient id="evalGradRed" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stop-color="#EF4444" stop-opacity="0.25"/>
-                        <stop offset="100%" stop-color="#EF4444" stop-opacity="0.0"/>
-                    </linearGradient>
-                </defs>
-                <path d="M0,18 Q30,30 60,20 T100,28 L100,40 L0,40 Z" fill="url(#evalGradRed)"/>
-                <path d="M0,18 Q30,30 60,20 T100,28" stroke="#EF4444" stroke-width="2.5" stroke-linecap="round"/>
-            </svg>
+            <?= render_kpi_sparkline($rejected, 'red') ?>
         </div>
         <div class="kpi-card-footer">
             <i data-lucide="x-circle" style="width:13px;height:13px;color:var(--color-danger);"></i>
@@ -150,14 +146,54 @@ require_once __DIR__ . '/../includes/header.php';
         </div>
         <div class="kpi-card-main">
             <div class="kpi-card-value tabular"><?= number_format($returned) ?></div>
-            <svg class="kpi-sparkline" viewBox="0 0 100 40" fill="none">
-                <path d="M0,20 Q30,32 60,22 T100,30 L100,40 L0,40 Z" fill="url(#evalGradWarning)"/>
-                <path d="M0,20 Q30,32 60,22 T100,30" stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round"/>
-            </svg>
+            <?= render_kpi_sparkline($returned, 'purple') ?>
         </div>
         <div class="kpi-card-footer">
             <i data-lucide="rotate-ccw" style="width:13px;height:13px;"></i>
             <span>Revisions requested</span>
+        </div>
+    </div>
+</div>
+
+<!-- =====================================================================
+     ANALYTICS SECTION: 2-COLUMN CHART.JS VISUALIZATIONS
+     ===================================================================== -->
+<div class="grid-2" style="margin-bottom:24px;">
+    <!-- Chart 1: Evaluation Decision History Doughnut Chart -->
+    <div class="card" style="box-shadow:var(--shadow-sm);border:1px solid var(--color-border);border-radius:var(--radius-lg);">
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+            <div>
+                <h3 style="margin:0 0 2px;font-size:15px;font-weight:700;">My Examination Outcomes</h3>
+                <span style="font-size:12px;color:var(--color-text-muted);">Historical breakdown of technical recommendations and pending assignments</span>
+            </div>
+            <span class="badge badge-success" style="font-size:11px;"><?= $approved + $returned + $rejected + $pending ?> Total Handled</span>
+        </div>
+        <div class="card-body" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:18px 20px;">
+            <div style="position:relative;height:200px;width:100%;max-width:260px;">
+                <canvas id="evalDecisionDoughnut"></canvas>
+            </div>
+            <div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:8px 12px;justify-content:center;font-size:11.5px;color:var(--color-text-muted);">
+                <span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#10B981;"></span> Recommended (<?= $evalDecisions['Recommended Approval'] ?>)</span>
+                <span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#F59E0B;"></span> Awaiting Action (<?= $evalDecisions['Awaiting My Decision'] ?>)</span>
+                <span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#F97316;"></span> Revisions (<?= $evalDecisions['Returned for Revision'] ?>)</span>
+                <span style="display:inline-flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;border-radius:50%;background:#EF4444;"></span> Denied (<?= $evalDecisions['Recommended Rejection'] ?>)</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart 2: Category Workload Bar Chart -->
+    <div class="card" style="box-shadow:var(--shadow-sm);border:1px solid var(--color-border);border-radius:var(--radius-lg);">
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
+            <div>
+                <h3 style="margin:0 0 2px;font-size:15px;font-weight:700;">Assigned Applications by Category</h3>
+                <span style="font-size:12px;color:var(--color-text-muted);">Filing categories assigned to your examiner profile</span>
+            </div>
+            <span class="badge badge-info" style="font-size:11px;"><?= array_sum($evalCategories) ?> Filings</span>
+        </div>
+        <div class="card-body" style="padding:18px 20px;">
+            <div style="position:relative;height:240px;width:100%;">
+                <canvas id="evalCategoryChart"></canvas>
+            </div>
         </div>
     </div>
 </div>
@@ -209,5 +245,103 @@ require_once __DIR__ . '/../includes/header.php';
         <?php endif; ?>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // 1. Decision Outcomes Doughnut Chart
+    const decCanvas = document.getElementById('evalDecisionDoughnut');
+    if (decCanvas) {
+        new Chart(decCanvas, {
+            type: 'doughnut',
+            data: {
+                labels: <?= json_encode(array_keys($evalDecisions)) ?>,
+                datasets: [{
+                    data: <?= json_encode(array_values($evalDecisions)) ?>,
+                    backgroundColor: ['#10B981', '#F59E0B', '#F97316', '#EF4444'],
+                    borderWidth: 2,
+                    borderColor: '#FFFFFF',
+                    hoverOffset: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '68%',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#FFFFFF',
+                        titleColor: '#111827',
+                        bodyColor: '#4B5563',
+                        borderColor: '#EAECF0',
+                        borderWidth: 1,
+                        padding: 10,
+                        cornerRadius: 8,
+                        titleFont: { family: 'Plus Jakarta Sans', weight: '700', size: 12 },
+                        bodyFont: { family: 'Inter', size: 12 },
+                        callbacks: {
+                            label: function(ctx) {
+                                return ' ' + ctx.label + ': ' + ctx.parsed + ' applications';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // 2. Category Workload Bar Chart
+    const catCanvas = document.getElementById('evalCategoryChart');
+    if (catCanvas) {
+        new Chart(catCanvas, {
+            type: 'bar',
+            data: {
+                labels: <?= json_encode(array_keys($evalCategories)) ?>,
+                datasets: [{
+                    label: 'Assigned Filings',
+                    data: <?= json_encode(array_values($evalCategories)) ?>,
+                    backgroundColor: '#2563EB',
+                    borderRadius: 6,
+                    maxBarThickness: 32
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#FFFFFF',
+                        titleColor: '#111827',
+                        bodyColor: '#4B5563',
+                        borderColor: '#EAECF0',
+                        borderWidth: 1,
+                        padding: 10,
+                        cornerRadius: 8,
+                        titleFont: { family: 'Plus Jakarta Sans', weight: '700', size: 12 },
+                        bodyFont: { family: 'Inter', size: 12 },
+                        callbacks: {
+                            label: function(ctx) {
+                                return ' ' + ctx.dataset.label + ': ' + ctx.parsed.y + ' filings';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { font: { family: 'Inter', size: 11 }, color: '#6B7280' }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: '#F2F4F7' },
+                        ticks: { precision: 0, font: { family: 'Inter', size: 11 }, color: '#6B7280' }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

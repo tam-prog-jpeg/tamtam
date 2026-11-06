@@ -46,21 +46,40 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // ---- 4. Topbar Profile Menu Dropdown --------------------------
+    // ---- 4. Topbar Notification Dropdown & Profile Menu -----------
+    const notifBtn = document.getElementById('notifBellBtn');
+    const notifDropdown = document.getElementById('notifDropdown');
     const userToggle = document.getElementById('userMenuToggle');
     const userMenu = document.getElementById('userMenuDropdown');
+
+    if (notifBtn && notifDropdown) {
+        notifBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (userMenu) userMenu.style.display = 'none';
+            const isOpen = notifDropdown.style.display === 'block';
+            notifDropdown.style.display = isOpen ? 'none' : 'block';
+            notifBtn.setAttribute('aria-expanded', !isOpen);
+        });
+    }
+
     if (userToggle && userMenu) {
         userToggle.addEventListener('click', (e) => {
             e.stopPropagation();
+            if (notifDropdown) notifDropdown.style.display = 'none';
             const isOpen = userMenu.style.display === 'block';
             userMenu.style.display = isOpen ? 'none' : 'block';
         });
-        document.addEventListener('click', (e) => {
-            if (userMenu.style.display === 'block' && !userMenu.contains(e.target)) {
-                userMenu.style.display = 'none';
-            }
-        });
     }
+
+    document.addEventListener('click', (e) => {
+        if (notifDropdown && notifDropdown.style.display === 'block' && (!notifBtn || !notifBtn.contains(e.target)) && !notifDropdown.contains(e.target)) {
+            notifDropdown.style.display = 'none';
+            if (notifBtn) notifBtn.setAttribute('aria-expanded', 'false');
+        }
+        if (userMenu && userMenu.style.display === 'block' && (!userToggle || !userToggle.contains(e.target)) && !userMenu.contains(e.target)) {
+            userMenu.style.display = 'none';
+        }
+    });
 
     // ---- 5. Dark Mode Switch Toggle (Fully Functional) ------------
     const themeSwitch = document.getElementById('themeSwitch');
@@ -378,7 +397,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
-/** Show a floating toast notification. type: success|error|warning|info */
+/** Show a floating toast notification at bottom-left. type: success|error|warning|info */
 function showToast(type, message, timeout = 4000) {
     let container = document.getElementById('toast-container');
     if (!container) {
@@ -393,8 +412,8 @@ function showToast(type, message, timeout = 4000) {
     container.appendChild(toast);
     setTimeout(() => {
         toast.style.opacity = '0';
-        toast.style.transform = 'translateX(20px)';
-        toast.style.transition = 'all 0.25s ease';
+        toast.style.transform = 'translateX(-30px)';
+        toast.style.transition = 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)';
         setTimeout(() => toast.remove(), 250);
     }, timeout);
 }
@@ -410,8 +429,8 @@ async function postJSON(url, data) {
 }
 
 /**
- * Document preview modal — used across every page that lists uploaded
- * documents (admin, staff, evaluator, manager, applicant).
+ * Enhanced Document preview modal with loading & error states
+ * Used across every page that lists uploaded documents (admin, staff, evaluator, manager, applicant).
  */
 function openDocPreview(url, fileType, fileName) {
     let overlay = document.getElementById('docPreviewOverlay');
@@ -420,38 +439,140 @@ function openDocPreview(url, fileType, fileName) {
         overlay.id = 'docPreviewOverlay';
         overlay.className = 'modal-overlay';
         overlay.innerHTML = `
-            <div class="modal-box" style="width:min(820px, 94vw);max-height:92vh;">
-                <div class="modal-head">
-                    <h3 id="docPreviewTitle">Preview</h3>
+            <div class="modal-box" style="width:min(860px, 94vw);max-height:92vh;display:flex;flex-direction:column;">
+                <div class="modal-head" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+                    <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+                        <span id="docPreviewExtBadge" class="badge badge-info" style="text-transform:uppercase;font-size:11px;">FILE</span>
+                        <h3 id="docPreviewTitle" style="margin:0;font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Document Preview</h3>
+                    </div>
                     <button type="button" class="modal-close" onclick="document.getElementById('docPreviewOverlay').classList.remove('open')">&times;</button>
                 </div>
-                <div class="modal-body" id="docPreviewBody" style="padding:0;max-height:76vh;overflow:auto;"></div>
-                <div class="modal-foot">
-                    <a id="docPreviewDownload" class="btn btn-primary btn-sm" target="_blank">Download File</a>
+                <div class="modal-body" id="docPreviewBody" style="padding:0;min-height:360px;max-height:75vh;overflow:auto;position:relative;background:var(--color-surface-subtle);display:flex;align-items:center;justify-content:center;">
+                    <!-- Dynamic preview content injected here -->
+                </div>
+                <div class="modal-foot" style="display:flex;align-items:center;justify-content:space-between;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('docPreviewOverlay').classList.remove('open')">Close</button>
+                    <a id="docPreviewDownload" class="btn btn-primary btn-sm" target="_blank" download>
+                        <i data-lucide="download" style="width:15px;height:15px;"></i>
+                        <span>Download File</span>
+                    </a>
                 </div>
             </div>`;
         document.body.appendChild(overlay);
         overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.classList.remove('open'); });
     }
 
-    document.getElementById('docPreviewTitle').textContent = fileName || 'Document Preview';
-    document.getElementById('docPreviewDownload').href = url;
-    const body = document.getElementById('docPreviewBody');
-    const ext = (fileType || '').toLowerCase();
+    const cleanTitle = fileName || 'Document Preview';
+    const ext = (fileType || (cleanTitle.split('.').pop() || '')).toLowerCase();
+    
+    document.getElementById('docPreviewTitle').textContent = cleanTitle;
+    document.getElementById('docPreviewExtBadge').textContent = ext.toUpperCase() || 'DOC';
+    
+    const downloadBtn = document.getElementById('docPreviewDownload');
+    downloadBtn.href = url;
+    downloadBtn.setAttribute('download', cleanTitle);
 
-    if (['jpg', 'jpeg', 'png'].includes(ext)) {
-        body.innerHTML = `<img src="${url}" alt="${fileName}" style="width:100%;display:block;max-height:74vh;object-fit:contain;background:#000;">`;
-    } else if (ext === 'pdf') {
-        body.innerHTML = `<iframe src="${url}" style="width:100%;height:74vh;border:none;display:block;"></iframe>`;
-    } else {
-        body.innerHTML = `
-            <div style="padding:48px 20px;text-align:center;color:var(--color-text-muted);font-size:13.5px;">
-                <i data-lucide="file-question" style="width:40px;height:40px;margin-bottom:12px;color:var(--color-text-subtle);"></i>
-                <br>Inline preview is not supported for ${ext.toUpperCase() || 'this'} files in the browser.<br>
-                Click <strong>Download File</strong> below to view it locally.
-            </div>`;
-        if (typeof lucide !== 'undefined') lucide.createIcons();
-    }
+    const body = document.getElementById('docPreviewBody');
+    body.innerHTML = `
+        <div id="docPreviewLoader" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:48px 20px;color:var(--color-text-muted);">
+            <div style="width:28px;height:28px;border:3px solid #E5E7EB;border-top-color:var(--color-primary-600);border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+            <span style="font-size:13px;font-weight:500;">Loading document preview...</span>
+        </div>
+    `;
 
     overlay.classList.add('open');
+
+    const removeLoader = () => {
+        const loader = document.getElementById('docPreviewLoader');
+        if (loader) loader.remove();
+    };
+
+    if (['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext)) {
+        const img = new Image();
+        img.src = url;
+        img.alt = cleanTitle;
+        img.style.cssText = 'max-width:100%;max-height:74vh;object-fit:contain;display:none;margin:auto;';
+        img.onload = () => {
+            removeLoader();
+            img.style.display = 'block';
+        };
+        img.onerror = () => {
+            removeLoader();
+            body.innerHTML = `
+                <div style="padding:48px 24px;text-align:center;color:var(--color-text-muted);font-size:13.5px;">
+                    <i data-lucide="alert-circle" style="width:40px;height:40px;color:var(--color-danger);margin-bottom:10px;"></i>
+                    <div style="font-weight:600;color:var(--color-text);margin-bottom:4px;">Unable to load image preview</div>
+                    <div>The image could not be loaded directly. You may still download the file below.</div>
+                </div>`;
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        };
+        body.appendChild(img);
+    } else if (ext === 'pdf') {
+        const iframe = document.createElement('iframe');
+        iframe.src = url;
+        iframe.style.cssText = 'width:100%;height:74vh;border:none;display:none;background:#FFFFFF;';
+        iframe.onload = () => {
+            removeLoader();
+            iframe.style.display = 'block';
+        };
+        iframe.onerror = () => {
+            removeLoader();
+            body.innerHTML = `
+                <div style="padding:48px 24px;text-align:center;color:var(--color-text-muted);font-size:13.5px;">
+                    <i data-lucide="file-text" style="width:40px;height:40px;color:var(--color-text-subtle);margin-bottom:10px;"></i>
+                    <div style="font-weight:600;color:var(--color-text);margin-bottom:4px;">PDF Preview Unavailable</div>
+                    <div>Your browser could not preview this PDF document inline. Please download to view.</div>
+                </div>`;
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        };
+        body.appendChild(iframe);
+        // Fallback timer if iframe load event is blocked by sandbox
+        setTimeout(() => {
+            removeLoader();
+            iframe.style.display = 'block';
+        }, 1200);
+    } else if (ext === 'txt') {
+        fetch(url)
+            .then(res => {
+                if (!res.ok) throw new Error('Network error');
+                return res.text();
+            })
+            .then(text => {
+                removeLoader();
+                body.style.display = 'block';
+                body.innerHTML = `
+                    <div style="width:100%;height:100%;max-height:74vh;overflow:auto;padding:22px;box-sizing:border-box;">
+                        <pre style="margin:0;font-family:var(--font-mono);font-size:12.5px;color:var(--color-text);white-space:pre-wrap;line-height:1.6;">${text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
+                    </div>`;
+            })
+            .catch(() => {
+                removeLoader();
+                body.innerHTML = `
+                    <div style="padding:48px 24px;text-align:center;color:var(--color-text-muted);font-size:13.5px;">
+                        <i data-lucide="alert-circle" style="width:40px;height:40px;color:var(--color-danger);margin-bottom:10px;"></i>
+                        <div style="font-weight:600;color:var(--color-text);margin-bottom:4px;">Unable to load text preview</div>
+                        <div>You can still download the file using the button below.</div>
+                    </div>`;
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            });
+    } else {
+        removeLoader();
+        body.innerHTML = `
+            <div style="padding:48px 28px;text-align:center;color:var(--color-text-muted);max-width:480px;margin:auto;">
+                <div style="width:60px;height:60px;border-radius:14px;background:var(--color-surface);border:1px solid var(--color-border);color:var(--color-primary-600);display:inline-flex;align-items:center;justify-content:center;margin-bottom:14px;box-shadow:var(--shadow-sm);">
+                    <i data-lucide="file-text" style="width:30px;height:30px;"></i>
+                </div>
+                <div style="font-size:15px;font-weight:700;color:var(--color-text);margin-bottom:6px;word-break:break-all;">${cleanTitle}</div>
+                <div style="font-size:13px;line-height:1.5;color:var(--color-text-muted);margin-bottom:18px;">
+                    Direct in-browser preview is not supported for <strong>.${ext.toUpperCase()}</strong> files. Click below to download and inspect this document locally.
+                </div>
+                <a href="${url}" class="btn btn-primary btn-sm" target="_blank" download="${cleanTitle}" style="display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 18px;">
+                    <i data-lucide="download" style="width:14px;height:14px;"></i> Download and View Document
+                </a>
+            </div>`;
+    }
+
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
 }

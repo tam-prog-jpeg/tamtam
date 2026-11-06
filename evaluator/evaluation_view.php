@@ -235,10 +235,10 @@ require_once __DIR__ . '/../includes/header.php';
                             <td class="tabular" style="font-size:12px;color:var(--color-text-muted);"><?= format_date($doc['uploaded_at'], 'M d, Y') ?></td>
                             <td style="text-align:right;">
                                 <div style="display:inline-flex;gap:6px;">
-                                    <button type="button" class="btn btn-outline btn-sm" onclick="openDocPreview('<?= BASE_URL . clean($doc['file_path']) ?>','<?= clean($doc['file_type']) ?>','<?= clean(addslashes($doc['file_name'])) ?>')" style="gap:4px;">
+                                    <button type="button" class="btn btn-primary btn-sm" onclick="openDocPreview('<?= BASE_URL . clean($doc['file_path']) ?>','<?= clean($doc['file_type']) ?>','<?= clean(addslashes($doc['file_name'])) ?>')" style="gap:4px;" title="Preview Document">
                                         <i data-lucide="eye" style="width:13px;height:13px;"></i> Preview
                                     </button>
-                                    <a class="btn btn-outline btn-sm" href="<?= BASE_URL . clean($doc['file_path']) ?>" target="_blank" style="gap:4px;">
+                                    <a class="btn btn-outline btn-sm" href="<?= BASE_URL . clean($doc['file_path']) ?>" target="_blank" download style="gap:4px;" title="Download File">
                                         <i data-lucide="download" style="width:13px;height:13px;"></i> Download
                                     </a>
                                 </div>

@@ -31,3 +31,4 @@ mysqli_set_charset($conn, 'utf8mb4');
 define('BASE_URL', '/zppsu_ipo/');
 define('UPLOAD_DIR', __DIR__ . '/uploads/');
 define('UPLOAD_URL', BASE_URL . 'uploads/');
+

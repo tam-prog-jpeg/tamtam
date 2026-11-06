@@ -325,7 +325,7 @@ function status_badge_class($status)
     return match ($status) {
         'pending'      => 'badge-warning',
         'under_review' => 'badge-info',
-        'evaluated'    => 'badge-info',
+        'evaluated'    => 'badge-primary',
         'returned'     => 'badge-warning',
         'approved'     => 'badge-success',
         'rejected'     => 'badge-danger',
@@ -335,7 +335,54 @@ function status_badge_class($status)
 
 function status_label($status)
 {
-    return ucwords(str_replace('_', ' ', $status));
+    return match ($status) {
+        'pending'      => 'Pending Verification',
+        'under_review' => 'Under Technical Review',
+        'evaluated'    => 'Recommended for Approval',
+        'returned'     => 'Needs Revision',
+        'approved'     => 'Approved & Registered',
+        'rejected'     => 'Application Denied',
+        default        => ucwords(str_replace('_', ' ', $status ?? '')),
+    };
+}
+
+/**
+ * Ensures the 'Others' category exists in application_types and
+ * custom_category exists in the applications table.
+ */
+function ensure_application_schema($conn)
+{
+    static $ensured = false;
+    if ($ensured || !$conn) return;
+
+    // Check custom_category column in applications
+    $checkCol = @mysqli_query($conn, "SHOW COLUMNS FROM applications LIKE 'custom_category'");
+    if ($checkCol && mysqli_num_rows($checkCol) === 0) {
+        @mysqli_query($conn, "ALTER TABLE applications ADD COLUMN custom_category VARCHAR(150) DEFAULT NULL AFTER type_id");
+    }
+
+    // Check 'Others' row in application_types
+    $checkType = @mysqli_query($conn, "SELECT type_id FROM application_types WHERE type_name = 'Others' LIMIT 1");
+    if ($checkType && mysqli_num_rows($checkType) === 0) {
+        @mysqli_query($conn, "INSERT INTO application_types (type_name, description, requirements, is_active) VALUES ('Others', 'Custom or emerging intellectual property category', 'General technical disclosure and supporting documentation', 1)");
+    }
+
+    $ensured = true;
+}
+
+/**
+ * Returns formatted IP category label, correctly reflecting custom category when 'Others' is selected.
+ */
+function get_application_category_label($row)
+{
+    if (is_string($row)) return $row;
+    $typeName = $row['type_name'] ?? '';
+    $customCat = trim($row['custom_category'] ?? '');
+
+    if ($typeName === 'Others') {
+        return $customCat !== '' ? $customCat : 'Others';
+    }
+    return $typeName !== '' ? $typeName : ($customCat !== '' ? $customCat : 'Unspecified');
 }
 
 /** Generate a unique, human-readable tracking code, e.g. IPO-2026-000123 */
@@ -360,4 +407,116 @@ function paginate($totalRows, $perPage = 10, $currentPage = 1)
     $currentPage = max(1, min($currentPage, $totalPages));
     $offset = ($currentPage - 1) * $perPage;
     return compact('totalPages', 'currentPage', 'offset', 'perPage');
+}
+
+/**
+ * Render a realistic, data-aware SVG sparkline for KPI summary cards.
+ * When $value <= 0, renders a calm, flat baseline indicating 0 activity,
+ * preventing artificial peaks or false growth spikes on zero-count metrics.
+ * When $value > 0, scales the curvature realistically to the magnitude or history.
+ *
+ * @param int|float $value Metric count
+ * @param string $color 'blue' | 'cyan' | 'purple' | 'green' | 'amber' | 'red'
+ * @param array|null $history Optional array of numeric data points
+ * @param string $extraClass CSS class ('kpi-sparkline', 'sparkline-svg')
+ * @return string Safe SVG HTML
+ */
+function render_kpi_sparkline($value, $color = 'blue', $history = null, $extraClass = 'kpi-sparkline')
+{
+    static $sparkCounter = 0;
+    $sparkCounter++;
+
+    $palette = [
+        'blue'    => ['stroke' => '#2563EB', 'grad' => '#2563EB'],
+        'cyan'    => ['stroke' => '#06B6D4', 'grad' => '#06B6D4'],
+        'purple'  => ['stroke' => '#8B5CF6', 'grad' => '#8B5CF6'],
+        'green'   => ['stroke' => '#10B981', 'grad' => '#10B981'],
+        'amber'   => ['stroke' => '#F59E0B', 'grad' => '#F59E0B'],
+        'yellow'  => ['stroke' => '#F59E0B', 'grad' => '#F59E0B'],
+        'warning' => ['stroke' => '#F59E0B', 'grad' => '#F59E0B'],
+        'red'     => ['stroke' => '#EF4444', 'grad' => '#EF4444'],
+        'danger'  => ['stroke' => '#EF4444', 'grad' => '#EF4444'],
+        'gray'    => ['stroke' => '#94A3B8', 'grad' => '#94A3B8'],
+    ];
+
+    $scheme = $palette[$color] ?? $palette['blue'];
+    $stroke = $scheme['stroke'];
+    $gradCol = $scheme['grad'];
+    $gradId = 'kpi_spk_' . $color . '_' . $sparkCounter;
+
+    $num = (float) $value;
+
+    // Check if real history array was provided
+    if (is_array($history) && count($history) >= 2) {
+        $maxVal = max($history);
+        $minVal = min($history);
+        if ($maxVal == 0 && $minVal == 0) {
+            $num = 0; // all zeros, fall back to flatline
+        } else {
+            $range = max(1, $maxVal - $minVal);
+            $count = count($history);
+            $points = [];
+            foreach ($history as $idx => $v) {
+                $x = round(($idx / ($count - 1)) * 100, 1);
+                $y = round(30 - ((($v - $minVal) / $range) * 22), 1);
+                $points[] = "$x,$y";
+            }
+            $linePath = 'M' . implode(' L', $points);
+            $areaPath = $linePath . ' L100,36 L0,36 Z';
+
+            $svg = '<svg class="' . clean($extraClass) . '" viewBox="0 0 100 36" preserveAspectRatio="none" fill="none" aria-hidden="true">';
+            $svg .= '<defs>';
+            $svg .= '<linearGradient id="' . $gradId . '" x1="0" y1="0" x2="0" y2="1">';
+            $svg .= '<stop offset="0%" stop-color="' . $gradCol . '" stop-opacity="0.25"/>';
+            $svg .= '<stop offset="100%" stop-color="' . $gradCol . '" stop-opacity="0.0"/>';
+            $svg .= '</linearGradient>';
+            $svg .= '</defs>';
+            $svg .= '<path d="' . $areaPath . '" fill="url(#' . $gradId . ')"/>';
+            $svg .= '<path d="' . $linePath . '" stroke="' . $stroke . '" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>';
+            $svg .= '</svg>';
+            return $svg;
+        }
+    }
+
+    // Zero / Inactive / Empty metric: Render a calm, flat horizontal baseline
+    if ($num <= 0) {
+        $svg = '<svg class="' . clean($extraClass) . '" viewBox="0 0 100 36" preserveAspectRatio="none" fill="none" aria-hidden="true">';
+        $svg .= '<defs>';
+        $svg .= '<linearGradient id="' . $gradId . '" x1="0" y1="0" x2="0" y2="1">';
+        $svg .= '<stop offset="0%" stop-color="' . $gradCol . '" stop-opacity="0.05"/>';
+        $svg .= '<stop offset="100%" stop-color="' . $gradCol . '" stop-opacity="0.0"/>';
+        $svg .= '</linearGradient>';
+        $svg .= '</defs>';
+        $svg .= '<path d="M0,30 L100,30 L100,36 L0,36 Z" fill="url(#' . $gradId . ')"/>';
+        $svg .= '<path d="M0,30 L100,30" stroke="' . $stroke . '" stroke-width="2" stroke-linecap="round" stroke-dasharray="3,3" opacity="0.6"/>';
+        $svg .= '</svg>';
+        return $svg;
+    }
+
+    // Positive Metric: Proportional, realistic gentle elevation
+    if ($num <= 3) {
+        // Very low count (1-3): subtle, gentle rise
+        $linePath = 'M0,28 Q30,24 60,20 T100,16';
+        $areaPath = 'M0,28 Q30,24 60,20 T100,16 L100,36 L0,36 Z';
+    } elseif ($num <= 10) {
+        // Moderate count (4-10): steady, stable curve
+        $linePath = 'M0,28 Q25,22 50,16 T100,10';
+        $areaPath = 'M0,28 Q25,22 50,16 T100,10 L100,36 L0,36 Z';
+    } else {
+        // High count (11+): healthy, confident upward ascent
+        $linePath = 'M0,30 Q25,20 50,14 T100,6';
+        $areaPath = 'M0,30 Q25,20 50,14 T100,6 L100,36 L0,36 Z';
+    }
+
+    $svg = '<svg class="' . clean($extraClass) . '" viewBox="0 0 100 36" preserveAspectRatio="none" fill="none" aria-hidden="true">';
+    $svg .= '<defs>';
+    $svg .= '<linearGradient id="' . $gradId . '" x1="0" y1="0" x2="0" y2="1">';
+    $svg .= '<stop offset="0%" stop-color="' . $gradCol . '" stop-opacity="0.25"/>';
+    $svg .= '<stop offset="100%" stop-color="' . $gradCol . '" stop-opacity="0.0"/>';
+    $svg .= '</linearGradient>';
+    $svg .= '</defs>';
+    $svg .= '<path d="' . $areaPath . '" fill="url(#' . $gradId . ')"/>';
+    $svg .= '<path d="' . $linePath . '" stroke="' . $stroke . '" stroke-width="2.5" stroke-linecap="round"/>';
+    $svg .= '</svg>';
+    return $svg;
 }

@@ -25,7 +25,30 @@ $stats['rejected'] = (int) mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(
 $stats['users']    = (int) mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) c FROM users"))['c'];
 
 // Approval Rate for Gauge
-$approvalRate = $stats['total'] > 0 ? round(($stats['approved'] / $stats['total']) * 100) : 72;
+$approvalRate = $stats['total'] > 0 ? round(($stats['approved'] / $stats['total']) * 100) : 0;
+
+// Live Status Breakdown for Chart.js Doughnut
+$statusCounts = [
+    'Approved'         => 0,
+    'Under Review'     => 0,
+    'Pending Intake'   => 0,
+    'Recommended'      => 0,
+    'Needs Revision'   => 0,
+    'Rejected'         => 0,
+];
+$scRes = mysqli_query($conn, "SELECT status, COUNT(*) AS c FROM applications GROUP BY status");
+if ($scRes) {
+    while ($r = mysqli_fetch_assoc($scRes)) {
+        $st = $r['status'];
+        $c = (int) $r['c'];
+        if ($st === 'approved') $statusCounts['Approved'] += $c;
+        elseif ($st === 'under_review') $statusCounts['Under Review'] += $c;
+        elseif ($st === 'pending') $statusCounts['Pending Intake'] += $c;
+        elseif ($st === 'evaluated') $statusCounts['Recommended'] += $c;
+        elseif ($st === 'returned') $statusCounts['Needs Revision'] += $c;
+        elseif ($st === 'rejected') $statusCounts['Rejected'] += $c;
+    }
+}
 
 // ---- 2. Application Types for Filter Pills ----
 $appTypes = [];
@@ -161,17 +184,7 @@ require_once __DIR__ . '/../includes/header.php';
         </div>
         <div class="kpi-card-main">
             <div class="kpi-card-value tabular"><?= number_format($stats['total']) ?></div>
-            <!-- Green Sparkline SVG -->
-            <svg class="kpi-sparkline" viewBox="0 0 100 40" fill="none">
-                <defs>
-                    <linearGradient id="sparkGradGreen" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stop-color="#10B981" stop-opacity="0.25"/>
-                        <stop offset="100%" stop-color="#10B981" stop-opacity="0.0"/>
-                    </linearGradient>
-                </defs>
-                <path d="M0,32 Q25,28 45,18 T75,12 T100,6 L100,40 L0,40 Z" fill="url(#sparkGradGreen)"/>
-                <path d="M0,32 Q25,28 45,18 T75,12 T100,6" stroke="#10B981" stroke-width="2.5" stroke-linecap="round"/>
-            </svg>
+            <?= render_kpi_sparkline($stats['total'], 'green', array_values($monthlySubmissions)) ?>
         </div>
         <div class="kpi-card-footer">
             <i data-lucide="clock" style="width:13px;height:13px;"></i>
@@ -189,17 +202,7 @@ require_once __DIR__ . '/../includes/header.php';
         </div>
         <div class="kpi-card-main">
             <div class="kpi-card-value tabular"><?= number_format($stats['pending']) ?></div>
-            <!-- Red/Coral Sparkline SVG -->
-            <svg class="kpi-sparkline" viewBox="0 0 100 40" fill="none">
-                <defs>
-                    <linearGradient id="sparkGradRed" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stop-color="#EF4444" stop-opacity="0.25"/>
-                        <stop offset="100%" stop-color="#EF4444" stop-opacity="0.0"/>
-                    </linearGradient>
-                </defs>
-                <path d="M0,18 Q20,30 40,24 T70,32 T100,16 L100,40 L0,40 Z" fill="url(#sparkGradRed)"/>
-                <path d="M0,18 Q20,30 40,24 T70,32 T100,16" stroke="#EF4444" stroke-width="2.5" stroke-linecap="round"/>
-            </svg>
+            <?= render_kpi_sparkline($stats['pending'], 'amber') ?>
         </div>
         <div class="kpi-card-footer">
             <i data-lucide="alert-circle" style="width:13px;height:13px;color:var(--color-warning);"></i>
@@ -217,11 +220,7 @@ require_once __DIR__ . '/../includes/header.php';
         </div>
         <div class="kpi-card-main">
             <div class="kpi-card-value tabular"><?= number_format($stats['approved']) ?></div>
-            <!-- Green Sparkline SVG -->
-            <svg class="kpi-sparkline" viewBox="0 0 100 40" fill="none">
-                <path d="M0,34 Q20,28 45,22 T75,10 T100,4 L100,40 L0,40 Z" fill="url(#sparkGradGreen)"/>
-                <path d="M0,34 Q20,28 45,22 T75,10 T100,4" stroke="#10B981" stroke-width="2.5" stroke-linecap="round"/>
-            </svg>
+            <?= render_kpi_sparkline($stats['approved'], 'green', array_values($monthlyApprovals)) ?>
         </div>
         <div class="kpi-card-footer">
             <i data-lucide="check-check" style="width:13px;height:13px;color:var(--color-success);"></i>
@@ -239,11 +238,7 @@ require_once __DIR__ . '/../includes/header.php';
         </div>
         <div class="kpi-card-main">
             <div class="kpi-card-value tabular"><?= number_format($stats['users']) ?></div>
-            <!-- Red/Coral Sparkline SVG -->
-            <svg class="kpi-sparkline" viewBox="0 0 100 40" fill="none">
-                <path d="M0,15 Q25,28 50,18 T80,30 T100,12 L100,40 L0,40 Z" fill="url(#sparkGradRed)"/>
-                <path d="M0,15 Q25,28 50,18 T80,30 T100,12" stroke="#EF4444" stroke-width="2.5" stroke-linecap="round"/>
-            </svg>
+            <?= render_kpi_sparkline($stats['users'], 'blue') ?>
         </div>
         <div class="kpi-card-footer">
             <i data-lucide="users" style="width:13px;height:13px;"></i>
@@ -275,60 +270,23 @@ require_once __DIR__ . '/../includes/header.php';
         </div>
     </div>
 
-    <!-- Right: Application Status (Semi-Circular Gauge Chart) -->
+    <!-- Right: Application Status (Live Chart.js Doughnut Breakdown) -->
     <div class="card">
         <div class="card-header">
-            <h3>Application Status</h3>
-            <div class="card-select-pill">
-                <select id="gaugeTimeframeSelect" aria-label="Select Gauge Period">
-                    <option value="all">Annual</option>
-                    <option value="recent">Recent</option>
-                </select>
-            </div>
+            <h3>Status Distribution</h3>
+            <span class="badge badge-secondary" style="font-size:11px;"><?= number_format($stats['total']) ?> Total Filings</span>
         </div>
-        <div class="card-body">
-            <div class="gauge-container">
-                <!-- Semi-circular SVG Gauge Arc (Matching Deli-Prop Available Listing) -->
-                <svg class="gauge-svg" viewBox="0 0 200 110">
-                    <!-- Background Track Arc -->
-                    <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#F1F5F9" stroke-width="18" stroke-linecap="round"/>
-                    <!-- Blue Dominant Arc (Approved) -->
-                    <path d="M 20 100 A 80 80 0 0 1 125 25" fill="none" stroke="#2563EB" stroke-width="18" stroke-linecap="round"/>
-                    <!-- Red Secondary Arc (Pending) -->
-                    <path d="M 132 28 A 80 80 0 0 1 168 65" fill="none" stroke="#EF4444" stroke-width="18" stroke-linecap="round"/>
-                    <!-- Light Purple Tertiary Arc (Others) -->
-                    <path d="M 172 73 A 80 80 0 0 1 180 100" fill="none" stroke="#CBD5E1" stroke-width="18" stroke-linecap="round"/>
-                </svg>
-
-                <!-- Center Gauge Metric -->
-                <div class="gauge-center-content">
-                    <div class="gauge-center-label">Approval Rate</div>
-                    <div class="gauge-center-val"><?= $approvalRate ?>%</div>
-                    <div class="gauge-center-sub">
-                        <span>+16% from last period</span>
-                    </div>
-                </div>
-
-                <!-- Legend Breakdown -->
-                <div class="gauge-legend-list">
-                    <div class="gauge-legend-item">
-                        <span class="gauge-dot blue"></span>
-                        <span>Approved (<?= $stats['approved'] ?>)</span>
-                    </div>
-                    <div class="gauge-legend-item">
-                        <span class="gauge-dot red"></span>
-                        <span>Pending (<?= $stats['pending'] ?>)</span>
-                    </div>
-                    <div class="gauge-legend-item">
-                        <span class="gauge-dot purple"></span>
-                        <span>Others (<?= $stats['rejected'] ?>)</span>
-                    </div>
-                </div>
-
-                <!-- Footer Summary Note -->
-                <div class="gauge-footer-note">
-                    Resolution Rate <strong>+32% More</strong> than previous cycle
-                </div>
+        <div class="card-body" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:18px 20px;">
+            <div style="position:relative;height:210px;width:100%;max-width:270px;">
+                <canvas id="adminStatusDoughnut"></canvas>
+            </div>
+            <div style="margin-top:14px;display:flex;flex-wrap:wrap;gap:8px 12px;justify-content:center;font-size:12px;color:var(--color-text-muted);">
+                <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:8px;height:8px;border-radius:50%;background:#10B981;"></span> Approved (<?= $statusCounts['Approved'] ?>)</span>
+                <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:8px;height:8px;border-radius:50%;background:#2563EB;"></span> Review (<?= $statusCounts['Under Review'] ?>)</span>
+                <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:8px;height:8px;border-radius:50%;background:#F59E0B;"></span> Pending (<?= $statusCounts['Pending Intake'] ?>)</span>
+                <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:8px;height:8px;border-radius:50%;background:#8B5CF6;"></span> Recommended (<?= $statusCounts['Recommended'] ?>)</span>
+                <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:8px;height:8px;border-radius:50%;background:#F97316;"></span> Revision (<?= $statusCounts['Needs Revision'] ?>)</span>
+                <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:8px;height:8px;border-radius:50%;background:#EF4444;"></span> Rejected (<?= $statusCounts['Rejected'] ?>)</span>
             </div>
         </div>
     </div>
@@ -510,7 +468,6 @@ require_once __DIR__ . '/../includes/header.php';
 <!-- =====================================================================
      CHART.JS & INTERACTION SCRIPTS
      ===================================================================== -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     // ---- 1. Initialize Dual-Line Smooth Spline Chart (Deli-Prop Exact Match) ----
@@ -625,6 +582,48 @@ document.addEventListener('DOMContentLoaded', function () {
                             font: { family: 'Inter', size: 11.5 },
                             callback: function(val) {
                                 return val >= 1000 ? (val/1000) + 'k' : val;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // ---- 1B. Initialize Status Distribution Doughnut Chart ----
+    const doughnutCtx = document.getElementById('adminStatusDoughnut');
+    if (doughnutCtx) {
+        new Chart(doughnutCtx, {
+            type: 'doughnut',
+            data: {
+                labels: <?= json_encode(array_keys($statusCounts)) ?>,
+                datasets: [{
+                    data: <?= json_encode(array_values($statusCounts)) ?>,
+                    backgroundColor: ['#10B981', '#2563EB', '#F59E0B', '#8B5CF6', '#F97316', '#EF4444'],
+                    borderWidth: 2,
+                    borderColor: '#FFFFFF',
+                    hoverOffset: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '68%',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#FFFFFF',
+                        titleColor: '#111827',
+                        bodyColor: '#4B5563',
+                        borderColor: '#EAECF0',
+                        borderWidth: 1,
+                        padding: 10,
+                        cornerRadius: 8,
+                        titleFont: { family: 'Plus Jakarta Sans', weight: '700', size: 12 },
+                        bodyFont: { family: 'Inter', size: 12 },
+                        callbacks: {
+                            label: function(context) {
+                                return ' ' + context.label + ': ' + context.parsed + ' applications';
                             }
                         }
                     }

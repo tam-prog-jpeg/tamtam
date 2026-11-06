@@ -55,25 +55,17 @@ if (!function_exists('nav_link')) {
             <?php nav_link('admin/documents.php', 'folder', 'Documents', 'documents', $currentPage); ?>
             <?php nav_link('admin/users.php', 'user-cog', 'User Management', 'users', $currentPage); ?>
             <?php nav_link('admin/reports.php', 'bar-chart-3', 'Analytics & Reports', 'reports', $currentPage); ?>
-            <?php nav_link('admin/notifications.php', 'bell', 'Notifications', 'notifications', $currentPage, $unreadCount); ?>
 
-            <li class="nav-label">Others</li>
+            <li class="nav-label">System</li>
             <?php nav_link('admin/announcements.php', 'megaphone', 'Announcements', 'announcements', $currentPage); ?>
             <?php nav_link('admin/audit_logs.php', 'shield-check', 'Audit Logs', 'audit_logs', $currentPage); ?>
-            <?php nav_link('admin/settings.php', 'settings', 'Settings', 'settings', $currentPage); ?>
-            <?php nav_link('admin/backup.php', 'database', 'Database Backup', 'backup', $currentPage); ?>
-            <?php nav_link('admin/profile.php', 'user', 'My Profile', 'profile', $currentPage); ?>
 
         <?php elseif ($role === 'Staff'): ?>
             <li class="nav-label">Menu</li>
             <?php nav_link('staff/dashboard.php', 'layout-dashboard', 'Dashboard', 'dashboard', $currentPage); ?>
-            <?php nav_link('staff/verify.php', 'check-circle', 'Verify Applications', 'verify', $currentPage); ?>
-            <?php nav_link('staff/applicants.php', 'users', 'Applicant Records', 'applicants', $currentPage); ?>
+            <?php nav_link('staff/verify.php', 'clipboard-check', 'Application Review', 'verify', $currentPage); ?>
+            <?php nav_link('staff/applicants.php', 'users', 'Applicants', 'applicants', $currentPage); ?>
             <?php nav_link('staff/documents.php', 'folder', 'Documents', 'documents', $currentPage); ?>
-
-            <li class="nav-label">Others</li>
-            <?php nav_link('staff/notifications.php', 'bell', 'Notifications', 'notifications', $currentPage, $unreadCount); ?>
-            <?php nav_link('staff/profile.php', 'user', 'My Profile', 'profile', $currentPage); ?>
 
         <?php elseif ($role === 'Evaluator'): ?>
             <li class="nav-label">Menu</li>
@@ -81,28 +73,17 @@ if (!function_exists('nav_link')) {
             <?php nav_link('evaluator/evaluations.php', 'clipboard-check', 'Evaluations', 'evaluations', $currentPage); ?>
             <?php nav_link('evaluator/reports.php', 'bar-chart-3', 'Reports', 'reports', $currentPage); ?>
 
-            <li class="nav-label">Others</li>
-            <?php nav_link('evaluator/notifications.php', 'bell', 'Notifications', 'notifications', $currentPage, $unreadCount); ?>
-            <?php nav_link('evaluator/profile.php', 'user', 'My Profile', 'profile', $currentPage); ?>
-
         <?php elseif ($role === 'Manager'): ?>
             <li class="nav-label">Menu</li>
             <?php nav_link('manager/dashboard.php', 'layout-dashboard', 'Dashboard', 'dashboard', $currentPage); ?>
+            <?php nav_link('manager/approved_applications.php', 'shield-check', 'Manager-Approved Applications', 'approved_applications', $currentPage); ?>
             <?php nav_link('manager/reports.php', 'bar-chart-3', 'Reports & Statistics', 'reports', $currentPage); ?>
-
-            <li class="nav-label">Others</li>
-            <?php nav_link('manager/notifications.php', 'bell', 'Notifications', 'notifications', $currentPage, $unreadCount); ?>
-            <?php nav_link('manager/profile.php', 'user', 'My Profile', 'profile', $currentPage); ?>
 
         <?php elseif ($role === 'Applicant'): ?>
             <li class="nav-label">Menu</li>
             <?php nav_link('applicant/dashboard.php', 'layout-dashboard', 'Dashboard', 'dashboard', $currentPage); ?>
             <?php nav_link('applicant/submit_application.php', 'plus-circle', 'Submit Application', 'submit', $currentPage); ?>
             <?php nav_link('applicant/my_applications.php', 'file-text', 'My Applications', 'my_applications', $currentPage); ?>
-
-            <li class="nav-label">Others</li>
-            <?php nav_link('applicant/notifications.php', 'bell', 'Notifications', 'notifications', $currentPage, $unreadCount); ?>
-            <?php nav_link('applicant/profile.php', 'user', 'My Profile', 'profile', $currentPage); ?>
         <?php endif; ?>
     </ul>
 

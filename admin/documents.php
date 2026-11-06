@@ -139,16 +139,7 @@ require_once __DIR__ . '/../includes/header.php';
         <div class="kpi-middle">
             <div class="kpi-value"><?= number_format((int)$kpiStats['total_all']) ?></div>
             <div class="kpi-spark">
-                <svg class="sparkline-svg" viewBox="0 0 80 24" preserveAspectRatio="none">
-                    <defs>
-                        <linearGradient id="grad-blue-doc" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stop-color="#2563EB" stop-opacity="0.3"/>
-                            <stop offset="100%" stop-color="#2563EB" stop-opacity="0.0"/>
-                        </linearGradient>
-                    </defs>
-                    <path d="M0 18 Q 20 8, 40 14 T 80 6 L 80 24 L 0 24 Z" fill="url(#grad-blue-doc)"/>
-                    <path d="M0 18 Q 20 8, 40 14 T 80 6" fill="none" stroke="#2563EB" stroke-width="2"/>
-                </svg>
+                <?= render_kpi_sparkline((int)$kpiStats['total_all'], 'blue', null, 'sparkline-svg') ?>
             </div>
         </div>
         <div class="kpi-bottom">
@@ -165,16 +156,7 @@ require_once __DIR__ . '/../includes/header.php';
         <div class="kpi-middle">
             <div class="kpi-value" style="color:var(--color-danger);"><?= number_format((int)$kpiStats['total_pdf']) ?></div>
             <div class="kpi-spark">
-                <svg class="sparkline-svg" viewBox="0 0 80 24" preserveAspectRatio="none">
-                    <defs>
-                        <linearGradient id="grad-red-doc" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stop-color="#EF4444" stop-opacity="0.3"/>
-                            <stop offset="100%" stop-color="#EF4444" stop-opacity="0.0"/>
-                        </linearGradient>
-                    </defs>
-                    <path d="M0 20 Q 25 10, 50 14 T 80 4 L 80 24 L 0 24 Z" fill="url(#grad-red-doc)"/>
-                    <path d="M0 20 Q 25 10, 50 14 T 80 4" fill="none" stroke="#EF4444" stroke-width="2"/>
-                </svg>
+                <?= render_kpi_sparkline((int)$kpiStats['total_pdf'], 'red', null, 'sparkline-svg') ?>
             </div>
         </div>
         <div class="kpi-bottom">
@@ -191,16 +173,7 @@ require_once __DIR__ . '/../includes/header.php';
         <div class="kpi-middle">
             <div class="kpi-value" style="color:var(--color-success);"><?= number_format((int)$kpiStats['total_images']) ?></div>
             <div class="kpi-spark">
-                <svg class="sparkline-svg" viewBox="0 0 80 24" preserveAspectRatio="none">
-                    <defs>
-                        <linearGradient id="grad-green-doc" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stop-color="#10B981" stop-opacity="0.3"/>
-                            <stop offset="100%" stop-color="#10B981" stop-opacity="0.0"/>
-                        </linearGradient>
-                    </defs>
-                    <path d="M0 22 Q 30 18, 55 10 T 80 2 L 80 24 L 0 24 Z" fill="url(#grad-green-doc)"/>
-                    <path d="M0 22 Q 30 18, 55 10 T 80 2" fill="none" stroke="#10B981" stroke-width="2"/>
-                </svg>
+                <?= render_kpi_sparkline((int)$kpiStats['total_images'], 'green', null, 'sparkline-svg') ?>
             </div>
         </div>
         <div class="kpi-bottom">
@@ -217,16 +190,7 @@ require_once __DIR__ . '/../includes/header.php';
         <div class="kpi-middle">
             <div class="kpi-value" style="color:var(--color-primary-600);"><?= number_format((int)$kpiStats['total_docx']) ?></div>
             <div class="kpi-spark">
-                <svg class="sparkline-svg" viewBox="0 0 80 24" preserveAspectRatio="none">
-                    <defs>
-                        <linearGradient id="grad-cyan-doc" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stop-color="#06B6D4" stop-opacity="0.3"/>
-                            <stop offset="100%" stop-color="#06B6D4" stop-opacity="0.0"/>
-                        </linearGradient>
-                    </defs>
-                    <path d="M0 16 Q 25 6, 50 12 T 80 8 L 80 24 L 0 24 Z" fill="url(#grad-cyan-doc)"/>
-                    <path d="M0 16 Q 25 6, 50 12 T 80 8" fill="none" stroke="#06B6D4" stroke-width="2"/>
-                </svg>
+                <?= render_kpi_sparkline((int)$kpiStats['total_docx'], 'cyan', null, 'sparkline-svg') ?>
             </div>
         </div>
         <div class="kpi-bottom">
@@ -367,12 +331,12 @@ require_once __DIR__ . '/../includes/header.php';
                     </td>
                     <td style="text-align:right;">
                         <div style="display:inline-flex;gap:6px;justify-content:flex-end;align-items:center;">
-                            <button type="button" class="btn btn-outline btn-sm" onclick="openDocPreview('<?= BASE_URL . clean($d['file_path']) ?>','<?= clean($d['file_type']) ?>','<?= clean(addslashes($d['file_name'])) ?>')" title="Quick Preview">
-                                <svg class="lucide-icon" viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                            <button type="button" class="btn btn-primary btn-sm" onclick="openDocPreview('<?= BASE_URL . clean($d['file_path']) ?>','<?= clean($d['file_type']) ?>','<?= clean(addslashes($d['file_name'])) ?>')" title="Preview Document">
+                                <i data-lucide="eye" style="width:14px;height:14px;"></i>
                                 Preview
                             </button>
                             <a class="btn btn-outline btn-sm" href="<?= BASE_URL . clean($d['file_path']) ?>" target="_blank" download title="Download File">
-                                <svg class="lucide-icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                <i data-lucide="download" style="width:14px;height:14px;"></i>
                                 Download
                             </a>
                             <form method="POST" onsubmit="return confirm('Delete this document permanently?');" style="margin:0;display:inline-flex;">

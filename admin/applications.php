@@ -2,13 +2,12 @@
 /**
  * admin/applications.php
  * -----------------------------------------------------------------
- * Full list of every IP application in the system. Supports:
- *  - search (tracking code, title, applicant name)
- *  - filters: status, application type, college, department, date range
- *  - category status tabs
- *  - KPI summary metric cards with sparklines
- *  - pagination
- * Links to application_view.php for full detail + status management.
+ * Full institutional list of every IP application in the system.
+ *  - Segregated status tabs with live aggregate counts
+ *  - Real-time live debounce search (300ms) - manual Filter button removed
+ *  - Unified Office/Department filter and table display
+ *  - Fixed filing date range validation & portfolio query binding
+ *  - Export CSV & Purge All actions
  * -----------------------------------------------------------------
  */
 require_once __DIR__ . '/../database.php';
@@ -51,30 +50,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $search    = sanitize_input($_GET['q'] ?? '');
 $status    = sanitize_input($_GET['status'] ?? '');
 $typeId    = (int) ($_GET['type_id'] ?? 0);
-$collegeId = (int) ($_GET['college_id'] ?? 0);
 $deptId    = (int) ($_GET['department_id'] ?? 0);
 $dateFrom  = sanitize_input($_GET['date_from'] ?? '');
 $dateTo    = sanitize_input($_GET['date_to'] ?? '');
 $page      = max(1, (int) ($_GET['page'] ?? 1));
 $perPage   = 10;
 
-// ---- Overall Stats for KPI cards ----
-$statsQuery = "
+// Auto-swap filing dates if inverted
+if ($dateFrom !== '' && $dateTo !== '' && $dateFrom > $dateTo) {
+    $tempDate = $dateFrom;
+    $dateFrom = $dateTo;
+    $dateTo   = $tempDate;
+}
+
+// ---- Status segregation counts for tabs and KPI cards ----
+$statusCountsQuery = "
     SELECT 
         COUNT(*) AS total_all,
         COALESCE(SUM(status = 'pending'), 0) AS total_pending,
-        COALESCE(SUM(status IN ('under_review', 'evaluated')), 0) AS total_review,
+        COALESCE(SUM(status = 'under_review'), 0) AS total_under_review,
+        COALESCE(SUM(status = 'evaluated'), 0) AS total_evaluated,
+        COALESCE(SUM(status = 'returned'), 0) AS total_returned,
         COALESCE(SUM(status = 'approved'), 0) AS total_approved,
         COALESCE(SUM(status = 'rejected'), 0) AS total_rejected
     FROM applications
 ";
-$statsRes = mysqli_query($conn, $statsQuery);
-$kpiStats = mysqli_fetch_assoc($statsRes) ?: [
-    'total_all' => 0,
-    'total_pending' => 0,
-    'total_review' => 0,
-    'total_approved' => 0,
-    'total_rejected' => 0
+$statusCountsRes = mysqli_query($conn, $statusCountsQuery);
+$statusCounts = mysqli_fetch_assoc($statusCountsRes) ?: [
+    'total_all'          => 0,
+    'total_pending'      => 0,
+    'total_under_review' => 0,
+    'total_evaluated'    => 0,
+    'total_returned'     => 0,
+    'total_approved'     => 0,
+    'total_rejected'     => 0
 ];
 
 // ---- Build the WHERE clause dynamically & safely ----
@@ -83,35 +92,48 @@ $types  = '';
 $params = [];
 
 if ($search !== '') {
-    $where[] = "(a.tracking_code LIKE ? OR a.title LIKE ? OR CONCAT(u.first_name,' ',u.last_name) LIKE ?)";
+    $where[] = "(a.tracking_code LIKE ? OR a.title LIKE ? OR CONCAT(u.first_name,' ',u.last_name) LIKE ? OR u.email LIKE ? OR t.type_name LIKE ? OR a.custom_category LIKE ?)";
     $like = "%$search%";
-    $types .= 'sss';
-    $params[] = $like; $params[] = $like; $params[] = $like;
+    $types .= 'ssssss';
+    $params[] = $like;
+    $params[] = $like;
+    $params[] = $like;
+    $params[] = $like;
+    $params[] = $like;
+    $params[] = $like;
 }
-if ($status !== '') {
+
+$validStatuses = ['pending', 'under_review', 'evaluated', 'returned', 'approved', 'rejected'];
+if (in_array($status, $validStatuses, true)) {
     $where[] = "a.status = ?";
-    $types .= 's'; $params[] = $status;
+    $types .= 's';
+    $params[] = $status;
 }
+
 if ($typeId > 0) {
     $where[] = "a.type_id = ?";
-    $types .= 'i'; $params[] = $typeId;
+    $types .= 'i';
+    $params[] = $typeId;
 }
-if ($collegeId > 0) {
-    $where[] = "a.college_id = ?";
-    $types .= 'i'; $params[] = $collegeId;
-}
+
 if ($deptId > 0) {
     $where[] = "a.department_id = ?";
-    $types .= 'i'; $params[] = $deptId;
+    $types .= 'i';
+    $params[] = $deptId;
 }
+
 if ($dateFrom !== '') {
     $where[] = "DATE(a.submitted_at) >= ?";
-    $types .= 's'; $params[] = $dateFrom;
+    $types .= 's';
+    $params[] = $dateFrom;
 }
+
 if ($dateTo !== '') {
     $where[] = "DATE(a.submitted_at) <= ?";
-    $types .= 's'; $params[] = $dateTo;
+    $types .= 's';
+    $params[] = $dateTo;
 }
+
 $whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
 
 // ---- Count total for pagination ----
@@ -120,6 +142,7 @@ $countSql = "
     FROM applications a
     JOIN applicants ap ON ap.applicant_id = a.applicant_id
     JOIN users u ON u.user_id = ap.user_id
+    JOIN application_types t ON t.type_id = a.type_id
     $whereSql
 ";
 $countStmt = mysqli_prepare($conn, $countSql);
@@ -131,7 +154,7 @@ $p = paginate($totalRows, $perPage, $page);
 
 // ---- Fetch the page of results ----
 $listSql = "
-    SELECT a.application_id, a.tracking_code, a.title, a.status, a.submitted_at,
+    SELECT a.application_id, a.tracking_code, a.title, a.status, a.submitted_at, a.custom_category,
            t.type_name, u.first_name, u.last_name, u.email,
            c.college_name, d.department_name
     FROM applications a
@@ -149,10 +172,19 @@ $applications = bind_execute($listStmt, $types, $params);
 
 // ---- Data for filter dropdowns ----
 $types_lookup = mysqli_query($conn, "SELECT type_id, type_name FROM application_types ORDER BY type_name");
-$colleges_lookup = mysqli_query($conn, "SELECT college_id, college_name FROM colleges ORDER BY college_name");
-$departments_lookup = mysqli_query($conn, "SELECT department_id, department_name, college_id FROM departments ORDER BY department_name");
-$deptList = [];
-while ($d = mysqli_fetch_assoc($departments_lookup)) { $deptList[] = $d; }
+
+// Hierarchical departments grouped by college for unified "Office/Department"
+$deptQuery = mysqli_query($conn, "
+    SELECT d.department_id, d.department_name, c.college_name
+    FROM departments d
+    LEFT JOIN colleges c ON c.college_id = d.college_id
+    ORDER BY c.college_name, d.department_name
+");
+$groupedDepartments = [];
+while ($row = mysqli_fetch_assoc($deptQuery)) {
+    $colName = $row['college_name'] ?: 'General Administration & Offices';
+    $groupedDepartments[$colName][] = $row;
+}
 
 function qs($overrides = [])
 {
@@ -164,14 +196,14 @@ function qs($overrides = [])
 require_once __DIR__ . '/../includes/header.php';
 ?>
 
-<!-- 1. Deli-Prop Sub-Header Bar -->
+<!-- 1. Sub-Header Bar -->
 <div class="sub-header-bar">
     <div class="sub-header-left">
         <h2>Applications Directory</h2>
-        <p>Monitor, review, and filter institutional IP filings across all categories and university colleges.</p>
+        <p>Monitor, review, and organize institutional IP filings across all categories and university departments.</p>
     </div>
     <div class="sub-header-actions">
-        <a href="<?= BASE_URL ?>admin/export_csv.php<?= $whereSql ? ('?' . http_build_query($_GET)) : '' ?>" class="btn btn-outline btn-sm" title="Export applications to CSV">
+        <a href="<?= BASE_URL ?>admin/export_csv.php<?= $whereSql ? ('?' . http_build_query($_GET)) : '' ?>" class="btn btn-outline btn-sm" title="Export filtered applications to CSV">
             <i data-lucide="download" style="width:15px;height:15px;"></i>
             Export CSV
         </a>
@@ -193,17 +225,8 @@ require_once __DIR__ . '/../includes/header.php';
             </span>
         </div>
         <div class="kpi-card-main">
-            <div class="kpi-card-value tabular"><?= number_format((int)$kpiStats['total_all']) ?></div>
-            <svg class="kpi-sparkline" viewBox="0 0 100 40" fill="none">
-                <defs>
-                    <linearGradient id="gradBlueApp" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stop-color="#2563EB" stop-opacity="0.25"/>
-                        <stop offset="100%" stop-color="#2563EB" stop-opacity="0.0"/>
-                    </linearGradient>
-                </defs>
-                <path d="M0,32 Q25,28 45,18 T75,12 T100,6 L100,40 L0,40 Z" fill="url(#gradBlueApp)"/>
-                <path d="M0,32 Q25,28 45,18 T75,12 T100,6" stroke="#2563EB" stroke-width="2.5" stroke-linecap="round"/>
-            </svg>
+            <div class="kpi-card-value tabular"><?= number_format((int)$statusCounts['total_all']) ?></div>
+            <?= render_kpi_sparkline((int)$statusCounts['total_all'], 'blue') ?>
         </div>
         <div class="kpi-card-footer">
             <i data-lucide="archive" style="width:13px;height:13px;color:var(--color-primary-600);"></i>
@@ -211,26 +234,17 @@ require_once __DIR__ . '/../includes/header.php';
         </div>
     </div>
 
-    <!-- Pending Review -->
+    <!-- Pending Intake -->
     <div class="kpi-card">
         <div class="kpi-card-header">
             <span>Awaiting Review</span>
-            <span class="info-icon" title="Applications awaiting assignment or staff evaluation">
+            <span class="info-icon" title="Applications awaiting formality check or evaluator assignment">
                 <i data-lucide="info" style="width:14px;height:14px;"></i>
             </span>
         </div>
         <div class="kpi-card-main">
-            <div class="kpi-card-value tabular" style="color:var(--color-warning);"><?= number_format((int)$kpiStats['total_pending']) ?></div>
-            <svg class="kpi-sparkline" viewBox="0 0 100 40" fill="none">
-                <defs>
-                    <linearGradient id="gradYellowApp" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stop-color="#F59E0B" stop-opacity="0.25"/>
-                        <stop offset="100%" stop-color="#F59E0B" stop-opacity="0.0"/>
-                    </linearGradient>
-                </defs>
-                <path d="M0,28 Q25,18 50,22 T80,8 T100,4 L100,40 L0,40 Z" fill="url(#gradYellowApp)"/>
-                <path d="M0,28 Q25,18 50,22 T80,8 T100,4" stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round"/>
-            </svg>
+            <div class="kpi-card-value tabular" style="color:var(--color-warning);"><?= number_format((int)$statusCounts['total_pending']) ?></div>
+            <?= render_kpi_sparkline((int)$statusCounts['total_pending'], 'amber') ?>
         </div>
         <div class="kpi-card-footer">
             <i data-lucide="alert-circle" style="width:13px;height:13px;color:var(--color-warning);"></i>
@@ -238,177 +252,154 @@ require_once __DIR__ . '/../includes/header.php';
         </div>
     </div>
 
-    <!-- Under Review & Evaluated -->
+    <!-- In Assessment (Under Review + Evaluated) -->
     <div class="kpi-card">
         <div class="kpi-card-header">
             <span>In Assessment</span>
-            <span class="info-icon" title="Applications assigned and under evaluation">
+            <span class="info-icon" title="Applications under technical review or substantive evaluation">
                 <i data-lucide="info" style="width:14px;height:14px;"></i>
             </span>
         </div>
         <div class="kpi-card-main">
-            <div class="kpi-card-value tabular" style="color:var(--color-primary-600);"><?= number_format((int)$kpiStats['total_review']) ?></div>
-            <svg class="kpi-sparkline" viewBox="0 0 100 40" fill="none">
-                <defs>
-                    <linearGradient id="gradPurpleApp" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stop-color="#8B5CF6" stop-opacity="0.25"/>
-                        <stop offset="100%" stop-color="#8B5CF6" stop-opacity="0.0"/>
-                    </linearGradient>
-                </defs>
-                <path d="M0,22 Q25,10 50,18 T80,12 T100,6 L100,40 L0,40 Z" fill="url(#gradPurpleApp)"/>
-                <path d="M0,22 Q25,10 50,18 T80,12 T100,6" stroke="#8B5CF6" stroke-width="2.5" stroke-linecap="round"/>
-            </svg>
+            <div class="kpi-card-value tabular" style="color:var(--color-primary-600);"><?= number_format((int)($statusCounts['total_under_review'] + $statusCounts['total_evaluated'])) ?></div>
+            <?= render_kpi_sparkline((int)($statusCounts['total_under_review'] + $statusCounts['total_evaluated']), 'purple') ?>
         </div>
         <div class="kpi-card-footer">
             <i data-lucide="clock" style="width:13px;height:13px;color:var(--color-primary-600);"></i>
-            <span>Assigned &amp; actively reviewed</span>
+            <span>Actively in technical evaluation</span>
         </div>
     </div>
 
     <!-- Approved / Registered -->
     <div class="kpi-card">
         <div class="kpi-card-header">
-            <span>Granted / Approved</span>
-            <span class="info-icon" title="Officially approved or registered applications">
+            <span>Approved / Registered</span>
+            <span class="info-icon" title="Officially approved and certified intellectual properties">
                 <i data-lucide="info" style="width:14px;height:14px;"></i>
             </span>
         </div>
         <div class="kpi-card-main">
-            <div class="kpi-card-value tabular" style="color:var(--color-success);"><?= number_format((int)$kpiStats['total_approved']) ?></div>
-            <svg class="kpi-sparkline" viewBox="0 0 100 40" fill="none">
-                <defs>
-                    <linearGradient id="gradGreenApp" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stop-color="#10B981" stop-opacity="0.25"/>
-                        <stop offset="100%" stop-color="#10B981" stop-opacity="0.0"/>
-                    </linearGradient>
-                </defs>
-                <path d="M0,34 Q25,30 45,20 T75,12 T100,4 L100,40 L0,40 Z" fill="url(#gradGreenApp)"/>
-                <path d="M0,34 Q25,30 45,20 T75,12 T100,4" stroke="#10B981" stroke-width="2.5" stroke-linecap="round"/>
-            </svg>
+            <div class="kpi-card-value tabular" style="color:var(--color-success);"><?= number_format((int)$statusCounts['total_approved']) ?></div>
+            <?= render_kpi_sparkline((int)$statusCounts['total_approved'], 'green') ?>
         </div>
         <div class="kpi-card-footer">
             <i data-lucide="check-check" style="width:13px;height:13px;color:var(--color-success);"></i>
-            <span>Registered intellectual property</span>
+            <span>Certified registered assets</span>
         </div>
     </div>
 </div>
 
-<!-- 3. Status Category Filter Tabs -->
-<div class="category-pill-tabs" style="margin-bottom:16px;overflow-x:auto;">
+<!-- 3. Status Segregation Tabs with Live Count Badges -->
+<div class="category-pill-tabs" style="margin-bottom:18px;display:flex;gap:8px;flex-wrap:wrap;">
     <a href="<?= qs(['status' => '', 'page' => 1]) ?>" class="category-pill <?= empty($status) ? 'active' : '' ?>">
-        <span>All Statuses</span>
-        <span class="badge badge-secondary" style="font-size:10.5px;padding:1px 6px;"><?= (int)$kpiStats['total_all'] ?></span>
+        <i data-lucide="layers" style="width:14px;height:14px;"></i>
+        <span>All Filings</span>
+        <span class="badge badge-secondary" style="font-size:11px;padding:2px 7px;"><?= (int)$statusCounts['total_all'] ?></span>
     </a>
     <a href="<?= qs(['status' => 'pending', 'page' => 1]) ?>" class="category-pill <?= $status === 'pending' ? 'active' : '' ?>">
-        <span>Pending</span>
-        <span class="badge badge-warning" style="font-size:10.5px;padding:1px 6px;"><?= (int)$kpiStats['total_pending'] ?></span>
+        <i data-lucide="clock" style="width:14px;height:14px;color:var(--color-warning);"></i>
+        <span>Pending Intake</span>
+        <span class="badge badge-warning" style="font-size:11px;padding:2px 7px;"><?= (int)$statusCounts['total_pending'] ?></span>
     </a>
     <a href="<?= qs(['status' => 'under_review', 'page' => 1]) ?>" class="category-pill <?= $status === 'under_review' ? 'active' : '' ?>">
+        <i data-lucide="search" style="width:14px;height:14px;color:var(--color-primary-600);"></i>
         <span>Under Review</span>
+        <span class="badge badge-primary" style="font-size:11px;padding:2px 7px;"><?= (int)$statusCounts['total_under_review'] ?></span>
     </a>
     <a href="<?= qs(['status' => 'evaluated', 'page' => 1]) ?>" class="category-pill <?= $status === 'evaluated' ? 'active' : '' ?>">
+        <i data-lucide="file-check-2" style="width:14px;height:14px;color:#8B5CF6;"></i>
         <span>Evaluated</span>
+        <span class="badge" style="font-size:11px;padding:2px 7px;background:rgba(139,92,246,0.15);color:#8B5CF6;border:1px solid rgba(139,92,246,0.3);"><?= (int)$statusCounts['total_evaluated'] ?></span>
+    </a>
+    <a href="<?= qs(['status' => 'returned', 'page' => 1]) ?>" class="category-pill <?= $status === 'returned' ? 'active' : '' ?>">
+        <i data-lucide="rotate-ccw" style="width:14px;height:14px;color:#F97316;"></i>
+        <span>Needs Revision</span>
+        <span class="badge" style="font-size:11px;padding:2px 7px;background:rgba(249,115,22,0.15);color:#F97316;border:1px solid rgba(249,115,22,0.3);"><?= (int)$statusCounts['total_returned'] ?></span>
     </a>
     <a href="<?= qs(['status' => 'approved', 'page' => 1]) ?>" class="category-pill <?= $status === 'approved' ? 'active' : '' ?>">
-        <span>Approved</span>
-        <span class="badge badge-success" style="font-size:10.5px;padding:1px 6px;"><?= (int)$kpiStats['total_approved'] ?></span>
+        <i data-lucide="check-circle" style="width:14px;height:14px;color:var(--color-success);"></i>
+        <span>Approved &amp; Registered</span>
+        <span class="badge badge-success" style="font-size:11px;padding:2px 7px;"><?= (int)$statusCounts['total_approved'] ?></span>
     </a>
     <a href="<?= qs(['status' => 'rejected', 'page' => 1]) ?>" class="category-pill <?= $status === 'rejected' ? 'active' : '' ?>">
+        <i data-lucide="x-circle" style="width:14px;height:14px;color:var(--color-danger);"></i>
         <span>Rejected</span>
-        <span class="badge badge-danger" style="font-size:10.5px;padding:1px 6px;"><?= (int)$kpiStats['total_rejected'] ?></span>
+        <span class="badge badge-danger" style="font-size:11px;padding:2px 7px;"><?= (int)$statusCounts['total_rejected'] ?></span>
     </a>
 </div>
 
-<!-- 4. Advanced Filter Bar Card -->
+<!-- 4. Real-time Search & Filter Card (Filter Button Removed) -->
 <div class="card" style="margin-bottom:20px;border-radius:var(--radius-lg);">
     <div class="card-body" style="padding:18px 20px;">
-        <form method="GET" action="<?= BASE_URL ?>admin/applications.php">
-            <!-- Keep current status tab if selected -->
+        <form method="GET" action="<?= BASE_URL ?>admin/applications.php" id="appsFilterForm">
+            <!-- Retain current status when filtering -->
             <?php if (!empty($status)): ?>
                 <input type="hidden" name="status" value="<?= clean($status) ?>">
             <?php endif; ?>
 
-            <div class="filter-controls-grid">
-                <!-- Search -->
+            <div class="filter-controls-grid" style="display:grid;grid-template-columns:repeat(12, 1fr);gap:14px;align-items:end;">
+                <!-- Live Search Portfolio (Real-time debounce) -->
                 <div class="form-group" style="margin-bottom:0;grid-column:span 4;">
-                    <label class="form-label-eyebrow">Search Portfolio</label>
+                    <label class="form-label-eyebrow">Real-time Portfolio Search</label>
                     <div class="input-icon-wrap has-left-icon">
                         <i data-lucide="search" class="input-icon-left"></i>
-                        <input type="text" name="q" class="form-control" placeholder="Tracking code, title, applicant…" value="<?= clean($search) ?>">
+                        <input type="text" name="q" id="portfolioSearchInput" class="form-control" 
+                               placeholder="Type tracking code, title, applicant name, or email…" 
+                               value="<?= clean($search) ?>" autocomplete="off">
                     </div>
                 </div>
 
                 <!-- IP Type -->
                 <div class="form-group" style="margin-bottom:0;grid-column:span 2;">
-                    <label class="form-label-eyebrow">IP Type</label>
-                    <select name="type_id" class="form-control form-select">
-                        <option value="0">All IP Types</option>
+                    <label class="form-label-eyebrow">IP Category</label>
+                    <select name="type_id" id="filterTypeId" class="form-control form-select">
+                        <option value="0">All Categories</option>
                         <?php mysqli_data_seek($types_lookup, 0); while ($t = mysqli_fetch_assoc($types_lookup)): ?>
                             <option value="<?= $t['type_id'] ?>" <?= $typeId === (int)$t['type_id'] ? 'selected' : '' ?>><?= clean($t['type_name']) ?></option>
                         <?php endwhile; ?>
                     </select>
                 </div>
 
-                <!-- College -->
+                <!-- Unified Office / Department -->
                 <div class="form-group" style="margin-bottom:0;grid-column:span 3;">
-                    <label class="form-label-eyebrow">College</label>
-                    <select name="college_id" id="filterCollege" class="form-control form-select">
-                        <option value="0">All Colleges</option>
-                        <?php mysqli_data_seek($colleges_lookup, 0); while ($c = mysqli_fetch_assoc($colleges_lookup)): ?>
-                            <option value="<?= $c['college_id'] ?>" <?= $collegeId === (int)$c['college_id'] ? 'selected' : '' ?>><?= clean($c['college_name']) ?></option>
-                        <?php endwhile; ?>
-                    </select>
-                </div>
-
-                <!-- Department -->
-                <div class="form-group" style="margin-bottom:0;grid-column:span 3;">
-                    <label class="form-label-eyebrow">Department</label>
-                    <select name="department_id" id="filterDept" class="form-control form-select">
-                        <option value="0">All Departments</option>
-                        <?php foreach ($deptList as $d): ?>
-                            <option value="<?= $d['department_id'] ?>" data-college="<?= $d['college_id'] ?>" <?= $deptId === (int)$d['department_id'] ? 'selected' : '' ?>><?= clean($d['department_name']) ?></option>
+                    <label class="form-label-eyebrow">Office / Department</label>
+                    <select name="department_id" id="filterDeptId" class="form-control form-select">
+                        <option value="0">All Offices &amp; Departments</option>
+                        <?php foreach ($groupedDepartments as $colName => $deptItems): ?>
+                            <optgroup label="<?= clean($colName) ?>">
+                                <?php foreach ($deptItems as $d): ?>
+                                    <option value="<?= $d['department_id'] ?>" <?= $deptId === (int)$d['department_id'] ? 'selected' : '' ?>>
+                                        <?= clean($d['department_name']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </optgroup>
                         <?php endforeach; ?>
                     </select>
                 </div>
 
-                <!-- Date Range -->
-                <div class="form-group" style="margin-bottom:0;grid-column:span 5;">
-                    <label class="form-label-eyebrow">Filing Date Range</label>
-                    <div style="display:flex;gap:8px;align-items:center;">
-                        <div class="input-icon-wrap has-left-icon" style="flex:1;">
-                            <i data-lucide="calendar" class="input-icon-left"></i>
-                            <input type="date" name="date_from" class="form-control" value="<?= clean($dateFrom) ?>" title="Start Date">
-                        </div>
-                        <span style="color:var(--color-text-subtle);font-weight:600;">&ndash;</span>
-                        <div class="input-icon-wrap has-left-icon" style="flex:1;">
-                            <i data-lucide="calendar" class="input-icon-left"></i>
-                            <input type="date" name="date_to" class="form-control" value="<?= clean($dateTo) ?>" title="End Date">
-                        </div>
+                <!-- Filing Date Range -->
+                <div class="form-group" style="margin-bottom:0;grid-column:span 3;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                        <label class="form-label-eyebrow" style="margin-bottom:0;">Filing Date Range</label>
+                        <?php if ($dateFrom !== '' || $dateTo !== ''): ?>
+                            <a href="<?= qs(['date_from' => '', 'date_to' => '', 'page' => 1]) ?>" style="font-size:11px;color:var(--color-primary-600);text-decoration:none;" title="Clear date range">Clear Dates</a>
+                        <?php endif; ?>
                     </div>
-                </div>
-
-                <!-- Action Buttons -->
-                <div class="form-group filter-actions-group" style="margin-bottom:0;grid-column:span 7;display:flex;justify-content:flex-end;align-items:flex-end;gap:8px;">
-                    <button type="submit" class="btn btn-primary" style="height:42px;padding:0 20px;">
-                        <i data-lucide="filter" style="width:15px;height:15px;"></i>
-                        Filter
-                    </button>
-                    <?php if ($search !== '' || $typeId > 0 || $collegeId > 0 || $deptId > 0 || $dateFrom !== '' || $dateTo !== '' || !empty($status)): ?>
-                        <a href="<?= BASE_URL ?>admin/applications.php" class="btn btn-outline" style="height:42px;padding:0 16px;display:inline-flex;align-items:center;gap:6px;" title="Reset filters">
-                            <i data-lucide="rotate-ccw" style="width:14px;height:14px;"></i>
-                            Reset
-                        </a>
-                    <?php endif; ?>
+                    <div style="display:flex;gap:6px;align-items:center;">
+                        <input type="date" name="date_from" id="filterDateFrom" class="form-control" value="<?= clean($dateFrom) ?>" title="Start Date" style="font-size:12px;padding:6px 10px;">
+                        <span style="color:var(--color-text-subtle);font-weight:600;">&ndash;</span>
+                        <input type="date" name="date_to" id="filterDateTo" class="form-control" value="<?= clean($dateTo) ?>" title="End Date" style="font-size:12px;padding:6px 10px;">
+                    </div>
                 </div>
             </div>
 
             <!-- Active Filter Badges Bar -->
             <?php 
-            $hasActiveFilters = ($search !== '' || $typeId > 0 || $collegeId > 0 || $deptId > 0 || $dateFrom !== '' || $dateTo !== '');
+            $hasActiveFilters = ($search !== '' || $typeId > 0 || $deptId > 0 || $dateFrom !== '' || $dateTo !== '');
             if ($hasActiveFilters): 
             ?>
-                <div class="active-filter-bar">
-                    <span class="active-filter-label">
+                <div class="active-filter-bar" style="margin-top:14px;padding-top:12px;border-top:1px solid var(--color-border);display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                    <span class="active-filter-label" style="font-size:12px;color:var(--color-text-muted);display:flex;align-items:center;gap:5px;font-weight:600;">
                         <i data-lucide="sliders-horizontal" style="width:13px;height:13px;"></i>
                         Active Filters:
                     </span>
@@ -420,47 +411,40 @@ require_once __DIR__ . '/../includes/header.php';
                     <?php endif; ?>
                     <?php if ($typeId > 0): 
                         mysqli_data_seek($types_lookup, 0);
-                        $typeName = 'Selected Type';
+                        $typeName = 'Category';
                         while ($t = mysqli_fetch_assoc($types_lookup)) {
                             if ((int)$t['type_id'] === $typeId) { $typeName = $t['type_name']; break; }
                         }
                     ?>
                         <span class="filter-chip">
-                            Type: <?= clean($typeName) ?>
-                            <a href="<?= qs(['type_id' => 0, 'page' => 1]) ?>" class="filter-chip-remove" title="Remove type filter">&times;</a>
-                        </span>
-                    <?php endif; ?>
-                    <?php if ($collegeId > 0): 
-                        mysqli_data_seek($colleges_lookup, 0);
-                        $collegeName = 'Selected College';
-                        while ($c = mysqli_fetch_assoc($colleges_lookup)) {
-                            if ((int)$c['college_id'] === $collegeId) { $collegeName = $c['college_name']; break; }
-                        }
-                    ?>
-                        <span class="filter-chip">
-                            College: <?= clean($collegeName) ?>
-                            <a href="<?= qs(['college_id' => 0, 'department_id' => 0, 'page' => 1]) ?>" class="filter-chip-remove" title="Remove college filter">&times;</a>
+                            Category: <?= clean($typeName) ?>
+                            <a href="<?= qs(['type_id' => 0, 'page' => 1]) ?>" class="filter-chip-remove" title="Remove category filter">&times;</a>
                         </span>
                     <?php endif; ?>
                     <?php if ($deptId > 0): 
-                        $deptName = 'Selected Dept';
-                        foreach ($deptList as $d) {
-                            if ((int)$d['department_id'] === $deptId) { $deptName = $d['department_name']; break; }
+                        $selectedDeptName = 'Office/Dept';
+                        foreach ($groupedDepartments as $grp => $list) {
+                            foreach ($list as $item) {
+                                if ((int)$item['department_id'] === $deptId) {
+                                    $selectedDeptName = $item['department_name'];
+                                    break 2;
+                                }
+                            }
                         }
                     ?>
                         <span class="filter-chip">
-                            Dept: <?= clean($deptName) ?>
+                            Office/Dept: <?= clean($selectedDeptName) ?>
                             <a href="<?= qs(['department_id' => 0, 'page' => 1]) ?>" class="filter-chip-remove" title="Remove department filter">&times;</a>
                         </span>
                     <?php endif; ?>
                     <?php if ($dateFrom !== '' || $dateTo !== ''): ?>
                         <span class="filter-chip">
-                            Dates: <?= clean($dateFrom ?: 'Any') ?> &ndash; <?= clean($dateTo ?: 'Any') ?>
+                            Filing Dates: <?= clean($dateFrom ?: 'Any') ?> &ndash; <?= clean($dateTo ?: 'Any') ?>
                             <a href="<?= qs(['date_from' => '', 'date_to' => '', 'page' => 1]) ?>" class="filter-chip-remove" title="Remove date range filter">&times;</a>
                         </span>
                     <?php endif; ?>
-                    <a href="<?= BASE_URL ?>admin/applications.php<?= !empty($status) ? '?status=' . urlencode($status) : '' ?>" class="filter-clear-all">
-                        Clear all
+                    <a href="<?= BASE_URL ?>admin/applications.php<?= !empty($status) ? '?status=' . urlencode($status) : '' ?>" class="filter-clear-all" style="font-size:12px;color:var(--color-primary-600);margin-left:auto;font-weight:600;">
+                        Reset all filters
                     </a>
                 </div>
             <?php endif; ?>
@@ -473,7 +457,7 @@ require_once __DIR__ . '/../includes/header.php';
     <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
         <div style="display:flex;align-items:center;gap:10px;">
             <h3>Application Records</h3>
-            <span class="badge badge-secondary" style="font-size:11px;"><?= (int) $totalRows ?> Results</span>
+            <span class="badge badge-secondary" style="font-size:11px;"><?= (int) $totalRows ?> Filings Found</span>
         </div>
         <div style="font-size:12px;color:var(--color-text-muted);">
             Showing page <?= (int)$p['currentPage'] ?> of <?= (int)$p['totalPages'] ?>
@@ -487,7 +471,7 @@ require_once __DIR__ . '/../includes/header.php';
                 </div>
                 <h4>No applications found</h4>
                 <p>No applications match your specified search keywords or active filters.</p>
-                <a href="<?= BASE_URL ?>admin/applications.php" class="btn btn-outline btn-sm" style="margin-top:10px;">Clear All Filters</a>
+                <a href="<?= BASE_URL ?>admin/applications.php<?= !empty($status) ? '?status=' . urlencode($status) : '' ?>" class="btn btn-outline btn-sm" style="margin-top:10px;">Clear Filters</a>
             </div>
         <?php else: ?>
         <table class="data-table">
@@ -495,9 +479,9 @@ require_once __DIR__ . '/../includes/header.php';
                 <tr>
                     <th>Tracking Code</th>
                     <th>Invention Title</th>
-                    <th>IP Type</th>
+                    <th>Category</th>
                     <th>Applicant</th>
-                    <th>College / Department</th>
+                    <th>Office / Department</th>
                     <th>Status</th>
                     <th>Submitted</th>
                     <th style="text-align:right;">Actions</th>
@@ -519,7 +503,7 @@ require_once __DIR__ . '/../includes/header.php';
                     </td>
                     <td>
                         <span class="badge badge-secondary" style="font-size:11px;">
-                            <?= clean($a['type_name']) ?>
+                            <?= clean($a['type_name'] === 'Others' && !empty($a['custom_category']) ? $a['custom_category'] : $a['type_name']) ?>
                         </span>
                     </td>
                     <td>
@@ -527,15 +511,22 @@ require_once __DIR__ . '/../includes/header.php';
                         <div style="font-size:11px;color:var(--color-text-muted);"><?= clean($a['email']) ?></div>
                     </td>
                     <td>
-                        <div style="font-size:12px;color:var(--color-text);"><?= clean($a['college_name'] ?? '—') ?></div>
-                        <?php if ($a['department_name']): ?>
-                            <div style="font-size:11px;color:var(--color-text-muted);"><?= clean($a['department_name']) ?></div>
+                        <div style="font-size:12.5px;font-weight:600;color:var(--color-text);">
+                            <?= clean($a['department_name'] ?: ($a['college_name'] ?? '—')) ?>
+                        </div>
+                        <?php if ($a['department_name'] && $a['college_name']): ?>
+                            <div style="font-size:11px;color:var(--color-text-muted);"><?= clean($a['college_name']) ?></div>
                         <?php endif; ?>
                     </td>
                     <td>
                         <span class="badge <?= status_badge_class($a['status']) ?>">
                             <?= status_label($a['status']) ?>
                         </span>
+                        <?php if ($a['status'] === 'approved'): ?>
+                            <span title="Record is locked in read-only mode" style="margin-left:4px;color:var(--color-success);display:inline-block;vertical-align:middle;">
+                                <i data-lucide="lock" style="width:12px;height:12px;"></i>
+                            </span>
+                        <?php endif; ?>
                     </td>
                     <td style="font-family:var(--font-mono);font-size:12px;color:var(--color-text-muted);white-space:nowrap;">
                         <?= format_date($a['submitted_at'], 'M d, Y') ?>
@@ -625,23 +616,34 @@ require_once __DIR__ . '/../includes/header.php';
 </div>
 
 <script>
+    // Purge confirmation gate
     document.getElementById('clearAllAppsConfirmInput')?.addEventListener('input', function () {
         document.getElementById('clearAllAppsSubmitBtn').disabled = this.value.trim() !== 'DELETE';
     });
 
-    // Cascading college -> department filter (client-side)
-    const collegeFilter = document.getElementById('filterCollege');
-    const deptFilter = document.getElementById('filterDept');
-    const deptOptions = Array.from(deptFilter.options).map(o => ({ el: o, college: o.dataset.college || null }));
-    function filterDepts() {
-        const cid = collegeFilter.value;
-        deptOptions.forEach(o => {
-            if (!o.college) return; // "All" option always visible
-            o.el.hidden = cid !== '0' && o.college !== cid;
+    // Real-time Live Debounce Search (300ms) without needing a Filter button
+    const searchInput = document.getElementById('portfolioSearchInput');
+    const filterForm = document.getElementById('appsFilterForm');
+    let searchDebounceTimer = null;
+
+    if (searchInput && filterForm) {
+        searchInput.addEventListener('input', function () {
+            clearTimeout(searchDebounceTimer);
+            searchDebounceTimer = setTimeout(function () {
+                filterForm.submit();
+            }, 300);
         });
     }
-    collegeFilter?.addEventListener('change', filterDepts);
-    if (collegeFilter) filterDepts();
+
+    // Auto-filter immediately upon dropdown change
+    ['filterTypeId', 'filterDeptId', 'filterDateFrom', 'filterDateTo'].forEach(function (id) {
+        const el = document.getElementById(id);
+        if (el && filterForm) {
+            el.addEventListener('change', function () {
+                filterForm.submit();
+            });
+        }
+    });
 </script>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

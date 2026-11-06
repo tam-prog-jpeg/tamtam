@@ -29,6 +29,16 @@ if (is_logged_in() && !isset($_GET['view'])) {
 // Application types, pulled live so this section never goes stale.
 $serviceTypes = mysqli_query($conn, "SELECT type_name, description FROM application_types WHERE is_active = 1 ORDER BY type_name");
 
+// Published announcements for the landing page
+$landingAnnouncements = mysqli_query($conn, "
+    SELECT a.*, u.first_name, u.last_name 
+    FROM announcements a 
+    JOIN users u ON u.user_id = a.posted_by 
+    WHERE a.is_active = 1 
+    ORDER BY a.posted_at DESC 
+    LIMIT 6
+");
+
 $typeIcons = [
     'Patent' => '💡', 'Utility Model' => '⚙️', 'Industrial Design' => '🎨',
     'Trademark' => '™️', 'Copyright' => '📖',
@@ -90,6 +100,64 @@ $typeIcons = [
 
         /* ---- Steps ---- */
         .steps-grid { display:grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 26px; }
+
+        /* ---- Announcements ---- */
+        .announcements-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; margin-top: 28px; }
+        .announcement-card {
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-lg);
+            background: #fff;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .announcement-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.08);
+        }
+        .announcement-img-wrap {
+            width: 100%;
+            height: 200px;
+            background: #f1f5f9;
+            overflow: hidden;
+            position: relative;
+        }
+        .announcement-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .announcement-body {
+            padding: 22px;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+        .announcement-meta {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 12px;
+            color: var(--color-text-muted);
+            margin-bottom: 8px;
+        }
+        .announcement-title {
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--color-text);
+            margin: 0 0 10px;
+            line-height: 1.4;
+        }
+        .announcement-text {
+            font-size: 13px;
+            color: var(--color-text-muted);
+            line-height: 1.6;
+            margin: 0;
+            flex: 1;
+        }
 
         /* ---- Contact ---- */
         .contact-section { background: var(--color-bg); }
@@ -208,6 +276,46 @@ $typeIcons = [
                 <h3 style="font-size:15px;">3. Get Approved</h3>
                 <p style="color:var(--color-text-muted);font-size:13px;">Receive notifications at every stage and download your approval once granted.</p>
             </div></div>
+        </div>
+    </section>
+
+    <!-- ================= ANNOUNCEMENTS & CAMPUS BROADCASTS ================= -->
+    <section class="landing-section" id="announcements" style="background:#f8fafc;border-top:1px solid var(--color-border);border-bottom:1px solid var(--color-border);max-width:100%;padding:64px 32px;">
+        <div style="max-width:1080px;margin:0 auto;">
+            <span class="landing-eyebrow">Campus Broadcasts</span>
+            <h2 class="landing-h2">Latest Announcements &amp; Updates</h2>
+            <p class="landing-lead">Stay informed about university intellectual property workshops, filing deadlines, policy advisories, and commercialization programs.</p>
+
+            <?php if (mysqli_num_rows($landingAnnouncements) === 0): ?>
+                <div style="background:#fff;border:1px dashed var(--color-border);border-radius:var(--radius-lg);padding:36px;text-align:center;margin-top:24px;">
+                    <p style="color:var(--color-text-muted);font-size:14px;margin:0;">No official announcements have been published at this time. Check back soon for university IP notices.</p>
+                </div>
+            <?php else: ?>
+                <div class="announcements-grid">
+                    <?php while ($ann = mysqli_fetch_assoc($landingAnnouncements)): ?>
+                        <article class="announcement-card">
+                            <?php if (!empty($ann['image_path'])): ?>
+                                <div class="announcement-img-wrap">
+                                    <img src="<?= BASE_URL . clean($ann['image_path']) ?>" alt="<?= clean($ann['title']) ?>" class="announcement-img">
+                                </div>
+                            <?php endif; ?>
+                            <div class="announcement-body">
+                                <div class="announcement-meta">
+                                    <span style="font-family:var(--font-mono);font-size:11.5px;color:var(--color-primary-600);font-weight:600;">
+                                        <?= format_date($ann['posted_at'], 'M d, Y') ?>
+                                    </span>
+                                    <span>&middot;</span>
+                                    <span>Posted by <?= clean($ann['first_name'] . ' ' . $ann['last_name']) ?></span>
+                                </div>
+                                <h3 class="announcement-title"><?= clean($ann['title']) ?></h3>
+                                <div class="announcement-text">
+                                    <?= nl2br(clean($ann['content'])) ?>
+                                </div>
+                            </div>
+                        </article>
+                    <?php endwhile; ?>
+                </div>
+            <?php endif; ?>
         </div>
     </section>
 

@@ -106,16 +106,7 @@ require_once __DIR__ . '/../includes/header.php';
         </div>
         <div class="kpi-card-main">
             <div class="kpi-card-value tabular" style="color:var(--color-warning);"><?= number_format($kpiCounts['under_review']) ?></div>
-            <svg class="kpi-sparkline" viewBox="0 0 100 40" fill="none">
-                <defs>
-                    <linearGradient id="eRevGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stop-color="#F59E0B" stop-opacity="0.3"/>
-                        <stop offset="100%" stop-color="#F59E0B" stop-opacity="0.0"/>
-                    </linearGradient>
-                </defs>
-                <path d="M0,28 Q25,12 50,22 T100,8 L100,40 L0,40 Z" fill="url(#eRevGrad)"/>
-                <path d="M0,28 Q25,12 50,22 T100,8" stroke="#F59E0B" stroke-width="2.5" stroke-linecap="round"/>
-            </svg>
+            <?= render_kpi_sparkline($kpiCounts['under_review'], 'amber') ?>
         </div>
         <div class="kpi-card-footer">
             <span class="kpi-trend up"><i data-lucide="alert-circle" style="width:13px;height:13px;"></i> Active Queue</span>
@@ -131,16 +122,7 @@ require_once __DIR__ . '/../includes/header.php';
         </div>
         <div class="kpi-card-main">
             <div class="kpi-card-value tabular" style="color:var(--color-success);"><?= number_format($kpiCounts['evaluated']) ?></div>
-            <svg class="kpi-sparkline" viewBox="0 0 100 40" fill="none">
-                <defs>
-                    <linearGradient id="eEvalGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stop-color="#10B981" stop-opacity="0.3"/>
-                        <stop offset="100%" stop-color="#10B981" stop-opacity="0.0"/>
-                    </linearGradient>
-                </defs>
-                <path d="M0,32 Q35,8 70,20 T100,10 L100,40 L0,40 Z" fill="url(#eEvalGrad)"/>
-                <path d="M0,32 Q35,8 70,20 T100,10" stroke="#10B981" stroke-width="2.5" stroke-linecap="round"/>
-            </svg>
+            <?= render_kpi_sparkline($kpiCounts['evaluated'], 'green') ?>
         </div>
         <div class="kpi-card-footer">
             <span class="kpi-trend up"><i data-lucide="trending-up" style="width:13px;height:13px;"></i> Passed Examination</span>
@@ -156,16 +138,7 @@ require_once __DIR__ . '/../includes/header.php';
         </div>
         <div class="kpi-card-main">
             <div class="kpi-card-value tabular"><?= number_format($kpiCounts['returned']) ?></div>
-            <svg class="kpi-sparkline" viewBox="0 0 100 40" fill="none">
-                <defs>
-                    <linearGradient id="eRetGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stop-color="#EC4899" stop-opacity="0.3"/>
-                        <stop offset="100%" stop-color="#EC4899" stop-opacity="0.0"/>
-                    </linearGradient>
-                </defs>
-                <path d="M0,25 Q30,35 60,18 T100,14 L100,40 L0,40 Z" fill="url(#eRetGrad)"/>
-                <path d="M0,25 Q30,35 60,18 T100,14" stroke="#EC4899" stroke-width="2.5" stroke-linecap="round"/>
-            </svg>
+            <?= render_kpi_sparkline($kpiCounts['returned'], 'purple') ?>
         </div>
         <div class="kpi-card-footer">
             <span class="kpi-trend neutral"><i data-lucide="refresh-cw" style="width:13px;height:13px;"></i> Clarification</span>
@@ -181,16 +154,7 @@ require_once __DIR__ . '/../includes/header.php';
         </div>
         <div class="kpi-card-main">
             <div class="kpi-card-value tabular"><?= number_format($totalAssigned) ?></div>
-            <svg class="kpi-sparkline" viewBox="0 0 100 40" fill="none">
-                <defs>
-                    <linearGradient id="eTotGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stop-color="#2563EB" stop-opacity="0.3"/>
-                        <stop offset="100%" stop-color="#2563EB" stop-opacity="0.0"/>
-                    </linearGradient>
-                </defs>
-                <path d="M0,22 Q25,32 50,18 T100,12 L100,40 L0,40 Z" fill="url(#eTotGrad)"/>
-                <path d="M0,22 Q25,32 50,18 T100,12" stroke="#2563EB" stroke-width="2.5" stroke-linecap="round"/>
-            </svg>
+            <?= render_kpi_sparkline($totalAssigned, 'blue') ?>
         </div>
         <div class="kpi-card-footer">
             <span class="kpi-trend neutral"><i data-lucide="layers" style="width:13px;height:13px;"></i> Portfolio</span>

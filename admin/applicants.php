@@ -55,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $search    = sanitize_input($_GET['q'] ?? '');
 $type      = sanitize_input($_GET['applicant_type'] ?? '');
-$collegeId = (int) ($_GET['college_id'] ?? 0);
+$deptId    = (int) ($_GET['department_id'] ?? 0);
 $page      = max(1, (int) ($_GET['page'] ?? 1));
 $perPage   = 10;
 
@@ -86,9 +86,9 @@ if ($type !== '') {
     $where[] = "ap.applicant_type = ?";
     $types .= 's'; $params[] = $type;
 }
-if ($collegeId > 0) {
-    $where[] = "ap.college_id = ?";
-    $types .= 'i'; $params[] = $collegeId;
+if ($deptId > 0) {
+    $where[] = "ap.department_id = ?";
+    $types .= 'i'; $params[] = $deptId;
 }
 $whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
 
@@ -115,7 +115,18 @@ $listStmt = mysqli_prepare($conn, "
 ");
 $applicants = bind_execute($listStmt, $types, $params);
 
-$colleges_lookup = mysqli_query($conn, "SELECT college_id, college_name FROM colleges ORDER BY college_name");
+// Grouped departments for Office/Department
+$deptQuery = mysqli_query($conn, "
+    SELECT d.department_id, d.department_name, c.college_name
+    FROM departments d
+    LEFT JOIN colleges c ON c.college_id = d.college_id
+    ORDER BY c.college_name, d.department_name
+");
+$groupedDepartments = [];
+while ($row = mysqli_fetch_assoc($deptQuery)) {
+    $colName = $row['college_name'] ?: 'General Administration & Offices';
+    $groupedDepartments[$colName][] = $row;
+}
 
 function qs2($overrides = [])
 {
@@ -272,15 +283,15 @@ require_once __DIR__ . '/../includes/header.php';
     </a>
 </div>
 
-<!-- 4. Search & Filter Bar -->
+<!-- 4. Search & Filter Bar (Live Search without Filter button) -->
 <div class="card" style="margin-bottom:20px;border-radius:var(--radius-lg);">
     <div class="card-body" style="padding:16px 20px;">
-        <form method="GET" style="display:grid;grid-template-columns:2fr 1.2fr auto;gap:12px;align-items:end;">
+        <form method="GET" action="<?= BASE_URL ?>admin/applicants.php" id="applicantsFilterForm" style="display:grid;grid-template-columns:2fr 1.5fr auto;gap:12px;align-items:end;">
             <div class="form-group" style="margin-bottom:0;">
-                <label class="form-label-eyebrow">Search Applicants</label>
+                <label class="form-label-eyebrow">Real-time Search Applicants</label>
                 <div class="input-icon-wrap has-left-icon">
                     <i data-lucide="search" class="input-icon-left"></i>
-                    <input type="text" name="q" class="form-control" placeholder="Name, email, username…" value="<?= clean($search) ?>">
+                    <input type="text" name="q" id="applicantSearchInput" class="form-control" placeholder="Type name, email, or username…" value="<?= clean($search) ?>" autocomplete="off">
                 </div>
             </div>
 
@@ -289,22 +300,28 @@ require_once __DIR__ . '/../includes/header.php';
             <?php endif; ?>
 
             <div class="form-group" style="margin-bottom:0;">
-                <label class="form-label-eyebrow">Filter by College</label>
-                <select name="college_id" class="form-control form-select">
-                    <option value="0">All Colleges</option>
-                    <?php mysqli_data_seek($colleges_lookup, 0); while ($c = mysqli_fetch_assoc($colleges_lookup)): ?>
-                        <option value="<?= $c['college_id'] ?>" <?= $collegeId === (int)$c['college_id'] ? 'selected' : '' ?>><?= clean($c['college_name']) ?></option>
-                    <?php endwhile; ?>
+                <label class="form-label-eyebrow">Office / Department</label>
+                <select name="department_id" id="filterDeptSelect" class="form-control form-select">
+                    <option value="0">All Offices &amp; Departments</option>
+                    <?php foreach ($groupedDepartments as $colName => $deptItems): ?>
+                        <optgroup label="<?= clean($colName) ?>">
+                            <?php foreach ($deptItems as $d): ?>
+                                <option value="<?= $d['department_id'] ?>" <?= $deptId === (int)$d['department_id'] ? 'selected' : '' ?>>
+                                    <?= clean($d['department_name']) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </optgroup>
+                    <?php endforeach; ?>
                 </select>
             </div>
 
-            <div style="display:flex;gap:6px;">
-                <button type="submit" class="btn btn-primary btn-sm" style="height:42px;padding:0 16px;">
-                    <i data-lucide="filter" style="width:14px;height:14px;"></i>
-                    Filter
-                </button>
-                <a href="<?= BASE_URL ?>admin/applicants.php" class="btn btn-outline btn-sm" style="height:42px;display:inline-flex;align-items:center;padding:0 14px;">Reset</a>
-            </div>
+            <?php if ($search !== '' || $deptId > 0 || !empty($type)): ?>
+                <div>
+                    <a href="<?= BASE_URL ?>admin/applicants.php" class="btn btn-outline btn-sm" style="height:42px;display:inline-flex;align-items:center;padding:0 14px;">Reset</a>
+                </div>
+            <?php else: ?>
+                <div></div>
+            <?php endif; ?>
         </form>
     </div>
 </div>
@@ -336,7 +353,7 @@ require_once __DIR__ . '/../includes/header.php';
                 <tr>
                     <th>Applicant Details</th>
                     <th>Type</th>
-                    <th>College / Department</th>
+                    <th>Office / Department</th>
                     <th>Contact</th>
                     <th>Filings</th>
                     <th>Status</th>
@@ -365,9 +382,11 @@ require_once __DIR__ . '/../includes/header.php';
                         </span>
                     </td>
                     <td>
-                        <div style="font-size:12px;color:var(--color-text);"><?= clean($a['college_name'] ?? '—') ?></div>
-                        <?php if ($a['department_name']): ?>
-                            <div style="font-size:11px;color:var(--color-text-muted);"><?= clean($a['department_name']) ?></div>
+                        <div style="font-size:12.5px;font-weight:600;color:var(--color-text);">
+                            <?= clean($a['department_name'] ?: ($a['college_name'] ?? '—')) ?>
+                        </div>
+                        <?php if ($a['department_name'] && $a['college_name']): ?>
+                            <div style="font-size:11px;color:var(--color-text-muted);"><?= clean($a['college_name']) ?></div>
                         <?php endif; ?>
                     </td>
                     <td style="font-family:var(--font-mono);font-size:12px;color:var(--color-text-muted);">
@@ -470,6 +489,24 @@ require_once __DIR__ . '/../includes/header.php';
 <script>
     document.getElementById('clearAllApplicantsConfirmInput')?.addEventListener('input', function () {
         document.getElementById('clearAllApplicantsSubmitBtn').disabled = this.value.trim() !== 'DELETE';
+    });
+
+    // Real-time live debounce search
+    const appSearchInput = document.getElementById('applicantSearchInput');
+    const appFilterForm = document.getElementById('applicantsFilterForm');
+    let appSearchTimer = null;
+
+    if (appSearchInput && appFilterForm) {
+        appSearchInput.addEventListener('input', function () {
+            clearTimeout(appSearchTimer);
+            appSearchTimer = setTimeout(function () {
+                appFilterForm.submit();
+            }, 300);
+        });
+    }
+
+    document.getElementById('filterDeptSelect')?.addEventListener('change', function () {
+        appFilterForm?.submit();
     });
 </script>
 

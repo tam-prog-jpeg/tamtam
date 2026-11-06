@@ -13,15 +13,19 @@ require_role(['Administrator']);
 
 $status    = sanitize_input($_GET['status'] ?? '');
 $typeId    = (int) ($_GET['type_id'] ?? 0);
-$collegeId = (int) ($_GET['college_id'] ?? 0);
 $deptId    = (int) ($_GET['department_id'] ?? 0);
 $dateFrom  = sanitize_input($_GET['date_from'] ?? '');
 $dateTo    = sanitize_input($_GET['date_to'] ?? '');
 
+if ($dateFrom !== '' && $dateTo !== '' && $dateFrom > $dateTo) {
+    $tempD = $dateFrom;
+    $dateFrom = $dateTo;
+    $dateTo = $tempD;
+}
+
 $where = []; $types = ''; $params = [];
 if ($status !== '')   { $where[] = "a.status = ?"; $types .= 's'; $params[] = $status; }
 if ($typeId > 0)      { $where[] = "a.type_id = ?"; $types .= 'i'; $params[] = $typeId; }
-if ($collegeId > 0)   { $where[] = "a.college_id = ?"; $types .= 'i'; $params[] = $collegeId; }
 if ($deptId > 0)      { $where[] = "a.department_id = ?"; $types .= 'i'; $params[] = $deptId; }
 if ($dateFrom !== '') { $where[] = "DATE(a.submitted_at) >= ?"; $types .= 's'; $params[] = $dateFrom; }
 if ($dateTo !== '')   { $where[] = "DATE(a.submitted_at) <= ?"; $types .= 's'; $params[] = $dateTo; }
@@ -172,7 +176,7 @@ while ($r = mysqli_fetch_assoc($result)) { $rows[] = $r; }
                 <th>Classification</th>
                 <th>Status</th>
                 <th>Applicant</th>
-                <th>College / Dept</th>
+                <th>Office/Department</th>
                 <th>Date Filed</th>
             </tr>
         </thead>
@@ -184,7 +188,7 @@ while ($r = mysqli_fetch_assoc($result)) { $rows[] = $r; }
                 <td><?= clean($row['type_name']) ?></td>
                 <td><span class="status-badge"><?= status_label($row['status']) ?></span></td>
                 <td><?= clean($row['first_name'] . ' ' . $row['last_name']) ?></td>
-                <td style="color:#6B7280;"><?= clean($row['college_name'] ?? '—') ?><?= $row['department_name'] ? ' / ' . clean($row['department_name']) : '' ?></td>
+                <td style="color:#6B7280;"><?= clean($row['department_name'] ?: ($row['college_name'] ?? '—')) ?><?= ($row['department_name'] && $row['college_name']) ? ' · ' . clean($row['college_name']) : '' ?></td>
                 <td style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;"><?= format_date($row['submitted_at'], 'M d, Y') ?></td>
             </tr>
             <?php endforeach; ?>
